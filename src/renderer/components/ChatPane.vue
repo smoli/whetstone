@@ -150,13 +150,15 @@ watch(
   border-left: 1px solid var(--rule);
 }
 .chat-head {
-  padding: 0.7rem 1.1rem;
+  height: var(--head-h);
+  padding: 0 1.1rem;
   border-bottom: 1px solid var(--rule);
   background: var(--paper-card);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
+  box-sizing: border-box;
 }
 .model-select {
   font-family: var(--sans);

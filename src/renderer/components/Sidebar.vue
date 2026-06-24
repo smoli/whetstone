@@ -16,17 +16,14 @@ function isActive(section: 'lessons' | 'reference', file: string): boolean {
     <div class="side-head">
       <button
         class="icon-btn"
-        title="Collapse"
+        :title="collapsed ? 'Expand' : 'Collapse'"
         @click="emit('toggle')"
       >
         {{ collapsed ? '☰' : '«' }}
       </button>
-      <strong
-        v-if="!collapsed"
-        class="ws-name"
-      >{{ ws.config?.workspaceName ?? 'Workspace' }}</strong>
     </div>
 
+    <!-- expanded: full lists -->
     <div
       v-if="!collapsed"
       class="side-body"
@@ -73,12 +70,32 @@ function isActive(section: 'lessons' | 'reference', file: string): boolean {
       </section>
     </div>
 
+    <!-- collapsed: numbers-only rail -->
+    <div
+      v-else
+      class="rail"
+    >
+      <button
+        v-for="file in ws.lessons"
+        :key="file"
+        :class="['rail-num', { active: isActive('lessons', file) }]"
+        :title="contentLabel(file) || file"
+        @click="ws.openItem('lessons', file)"
+      >
+        {{ lessonNumber(file) || '•' }}
+      </button>
+    </div>
+
     <button
-      v-if="!collapsed"
-      class="sessions"
+      class="home"
+      :class="{ icononly: collapsed }"
+      title="Home"
       @click="emit('sessions')"
     >
-      ← Sessions
+      <span class="house">⌂</span><span
+        v-if="!collapsed"
+        class="home-label"
+      >Home</span>
     </button>
   </aside>
 </template>
@@ -94,14 +111,15 @@ function isActive(section: 'lessons' | 'reference', file: string): boolean {
   transition: width 0.12s;
 }
 .sidebar.collapsed {
-  width: 2.6rem;
+  width: 2.8rem;
 }
 .side-head {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 0.6rem;
+  height: var(--head-h);
+  padding: 0 0.5rem;
   border-bottom: 1px solid var(--rule);
+  box-sizing: border-box;
 }
 .icon-btn {
   font: inherit;
@@ -109,15 +127,8 @@ function isActive(section: 'lessons' | 'reference', file: string): boolean {
   background: transparent;
   color: var(--ink-soft);
   cursor: pointer;
-  font-size: 0.95rem;
-  padding: 0.1rem 0.3rem;
-}
-.ws-name {
-  font-family: var(--serif);
-  font-size: 0.98rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 1rem;
+  padding: 0.2rem 0.35rem;
 }
 .side-body {
   flex: 1;
@@ -178,18 +189,60 @@ function isActive(section: 'lessons' | 'reference', file: string): boolean {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.sessions {
+
+/* collapsed numbers rail */
+.rail {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0;
+}
+.rail-num {
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 0.85rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+.rail-num:hover {
+  background: #efe7d8;
+}
+.rail-num.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.home {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-family: var(--sans);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   text-align: left;
   border: 0;
   border-top: 1px solid var(--rule);
   background: transparent;
   color: var(--ink-soft);
-  padding: 0.6rem 0.8rem;
+  padding: 0.6rem 0.7rem;
   cursor: pointer;
 }
-.sessions:hover {
+.home.icononly {
+  justify-content: center;
+  padding: 0.6rem 0;
+}
+.home:hover {
   color: var(--accent);
+}
+.home .house {
+  font-size: 1.05rem;
 }
 </style>

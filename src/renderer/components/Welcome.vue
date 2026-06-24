@@ -35,9 +35,9 @@ const create = () => run(() => ws.newSession(topic.value))
   <div class="welcome">
     <div class="panel">
       <p class="eyebrow">
-        Teach Desktop
+        Whetstone
       </p>
-      <h1>Pick up a teaching session</h1>
+      <h1>Sharpen what you know</h1>
 
       <div class="actions">
         <button

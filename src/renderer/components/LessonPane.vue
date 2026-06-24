@@ -21,6 +21,11 @@ async function commit(): Promise<void> {
   <section class="content">
     <header class="content-head">
       <div class="bar">
+        <span class="ws-name">{{ ws.config?.workspaceName ?? 'Workspace' }}</span>
+        <span
+          v-if="title"
+          class="sep"
+        >›</span>
         <span class="title">{{ title }}</span>
         <div class="spacer" />
         <input
@@ -65,18 +70,34 @@ async function commit(): Promise<void> {
   background: var(--paper);
 }
 .content-head {
-  padding: 0.55rem 1rem;
+  height: var(--head-h);
+  padding: 0 1rem;
   border-bottom: 1px solid var(--rule);
   background: var(--paper-card);
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
 }
 .bar {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
+}
+.ws-name {
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+.sep {
+  color: var(--ink-soft);
+  flex: 0 0 auto;
 }
 .title {
   font-family: var(--serif);
   font-size: 1rem;
+  color: var(--ink-soft);
   text-transform: capitalize;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -114,6 +114,7 @@ onMounted(async () => {
   --link: #9c4a24;
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --head-h: 3rem;
 }
 html,
 body,
