@@ -68,6 +68,16 @@ Reuse is the default, not the exception. Before authoring a lesson, read `./asse
 
 A shared stylesheet is the first component every workspace earns: every lesson links it, so the lessons look like one consistent course rather than a pile of one-offs. As the workspace grows, so should the component library.
 
+## Teach Desktop integration
+
+When this skill runs inside the **Teach Desktop** app, lessons become two-way:
+the learner can submit exercises, complete quizzes, and ask for help from within
+the lesson itself, and you can render feedback or adapt the lesson live via the
+`teach-bridge` MCP tools (`lesson_feedback`, `patch_lesson`, `schedule_review`,
+`record_learning`). This is optional and degrades gracefully in a bare terminal.
+See [DESKTOP-INTEGRATION.md](./DESKTOP-INTEGRATION.md) for the tools and the
+lesson-authoring conventions that light them up.
+
 ## The Mission
 
 Every lesson should be tied into the mission - the reason that the user is interested in learning about the topic.
