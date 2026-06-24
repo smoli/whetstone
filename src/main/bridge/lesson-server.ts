@@ -130,6 +130,7 @@ export class LessonServer {
       return this.serveFrom(this.opts.workspaceRoot, rel, res, true, lessonId)
     }
 
+    console.warn('[lesson-server] no route:', req.method, url.pathname)
     return json(res, 404, { ok: false, error: 'not found' })
   }
 
@@ -194,7 +195,8 @@ export class LessonServer {
     let md: string
     try {
       md = await fs.readFile(abs, 'utf8')
-    } catch {
+    } catch (err) {
+      console.warn('[lesson-server] doc not found:', abs, (err as NodeJS.ErrnoException).code)
       return this.serveNotFound(rel, res)
     }
     const bodyHtml = marked.parse(md, { async: false, gfm: true })
