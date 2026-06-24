@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { AppConfig, ModelOption, RecentWorkspace, GitResult } from '@shared/ipc'
+import type { AppConfig, ModelOption, RecentWorkspace, GitResult, GitInfo } from '@shared/ipc'
 import type { ChatMessage } from '@shared/chat'
 
 export type ContentSection = 'lessons' | 'reference' | 'doc'
@@ -22,6 +22,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const model = ref('default')
   const models = ref<ModelOption[]>([])
   const session = ref<{ messages: ChatMessage[]; resumed: boolean }>({ messages: [], resumed: false })
+  const git = ref<GitInfo>({ isRepo: false, branch: null, hasRemote: false, remoteUrl: null })
 
   const currentUrl = computed(() => {
     if (!config.value || !current.value) return null
@@ -76,6 +77,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         ? { section: 'reference' as const, file: references.value[0] }
         : null
     if (initial) navigate(initial)
+    git.value = await window.teach.gitInfo()
     active.value = true
   }
 
@@ -140,8 +142,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     window.teach.setModel(id)
   }
 
-  function commit(message: string): Promise<GitResult> {
-    return window.teach.gitCommit(message)
+  async function commit(message: string): Promise<GitResult> {
+    const res = await window.teach.gitCommit(message)
+    git.value = await window.teach.gitInfo()
+    return res
+  }
+
+  async function push(remoteUrl: string | null): Promise<GitResult> {
+    const res = await window.teach.gitPush(remoteUrl)
+    git.value = await window.teach.gitInfo()
+    return res
   }
 
   function revealWorkspace(): void {
@@ -149,8 +159,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   return {
-    active, recent, config, lessons, references, docs, current, currentUrl, canBack, canForward, model, models, session,
+    active, recent, config, lessons, references, docs, current, currentUrl, canBack, canForward, model, models, session, git,
     loadLauncher, openFolder, openRecent, newSession, toLauncher, openItem, onNavigated, back, forward,
-    refreshContents, setModel, commit, revealWorkspace,
+    refreshContents, setModel, commit, push, revealWorkspace,
   }
 })

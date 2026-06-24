@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { IPC, type TeachApi, type AppConfig, type LauncherState, type GitResult } from '@shared/ipc'
+import { IPC, type TeachApi, type AppConfig, type LauncherState, type GitResult, type GitInfo } from '@shared/ipc'
 import type { ChatEvent, ClaudeError, ChatMessage } from '@shared/chat'
 
 const api: TeachApi = {
@@ -29,6 +29,8 @@ const api: TeachApi = {
   openRecent: (path: string) => ipcRenderer.invoke(IPC.openRecent, path) as Promise<AppConfig | null>,
   newSession: (topic: string) => ipcRenderer.invoke(IPC.newSession, topic) as Promise<AppConfig | null>,
   gitCommit: (message: string) => ipcRenderer.invoke(IPC.gitCommit, message) as Promise<GitResult>,
+  gitInfo: () => ipcRenderer.invoke(IPC.gitInfo) as Promise<GitInfo>,
+  gitPush: (remoteUrl: string | null) => ipcRenderer.invoke(IPC.gitPush, remoteUrl) as Promise<GitResult>,
 }
 
 contextBridge.exposeInMainWorld('teach', api)

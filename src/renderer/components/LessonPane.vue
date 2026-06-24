@@ -7,6 +7,9 @@ const ws = useWorkspaceStore()
 defineProps<{ sidebarCollapsed: boolean }>()
 const commitMsg = ref('')
 const commitStatus = ref('')
+const remoteUrl = ref('')
+const showRemote = ref(false)
+const pushing = ref(false)
 
 const title = computed(() => (ws.current ? contentLabel(ws.current.file) || ws.current.file : ''))
 
@@ -15,6 +18,24 @@ async function commit(): Promise<void> {
   const res = await ws.commit(commitMsg.value)
   commitStatus.value = res.message
   if (res.ok) commitMsg.value = ''
+}
+
+async function push(): Promise<void> {
+  // No remote yet → reveal the URL field first; require it before pushing.
+  if (!ws.git.hasRemote && !showRemote.value) {
+    showRemote.value = true
+    return
+  }
+  if (!ws.git.hasRemote && !remoteUrl.value.trim()) return
+  pushing.value = true
+  commitStatus.value = 'Pushing…'
+  const res = await ws.push(remoteUrl.value.trim() || null)
+  commitStatus.value = res.message
+  pushing.value = false
+  if (res.ok) {
+    remoteUrl.value = ''
+    showRemote.value = false
+  }
 }
 </script>
 
@@ -59,6 +80,23 @@ async function commit(): Promise<void> {
           @click="commit"
         >
           Commit
+        </button>
+        <input
+          v-if="showRemote && !ws.git.hasRemote"
+          v-model="remoteUrl"
+          class="commit-msg remote"
+          type="text"
+          placeholder="git@github.com:you/course.git"
+          @keydown.enter="push"
+        >
+        <button
+          v-if="ws.git.isRepo"
+          class="push-btn"
+          :disabled="pushing"
+          :title="ws.git.hasRemote ? `Push to ${ws.git.remoteUrl}` : 'Set a remote and push'"
+          @click="push"
+        >
+          Push
         </button>
         <span
           v-if="commitStatus"
@@ -162,6 +200,24 @@ async function commit(): Promise<void> {
   background: var(--accent);
   color: #fff;
   cursor: pointer;
+}
+.commit-msg.remote {
+  width: 16rem;
+}
+.push-btn {
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.4rem;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+.push-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 .commit-status {
   font-size: 0.76rem;

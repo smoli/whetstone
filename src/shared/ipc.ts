@@ -19,6 +19,8 @@ export const IPC = {
   openRecent: 'teach:openRecent',
   newSession: 'teach:newSession',
   gitCommit: 'teach:gitCommit',
+  gitInfo: 'teach:gitInfo',
+  gitPush: 'teach:gitPush',
 } as const
 
 export interface ModelOption {
@@ -63,6 +65,13 @@ export interface GitResult {
   message: string
 }
 
+export interface GitInfo {
+  isRepo: boolean
+  branch: string | null
+  hasRemote: boolean
+  remoteUrl: string | null
+}
+
 /** The typed surface the preload exposes to the renderer as `window.teach`. */
 export interface TeachApi {
   sendChat(text: string): void
@@ -96,6 +105,10 @@ export interface TeachApi {
   newSession(topic: string): Promise<AppConfig | null>
   /** Stage all and commit the active workspace. */
   gitCommit(message: string): Promise<GitResult>
+  /** Repo/remote status of the active workspace. */
+  gitInfo(): Promise<GitInfo>
+  /** Push the active workspace; sets 'origin' to remoteUrl first if given. */
+  gitPush(remoteUrl: string | null): Promise<GitResult>
 }
 
 declare global {

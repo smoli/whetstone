@@ -13,9 +13,10 @@ import { MODELS, buildExtraArgs, parseSessionFile, shouldFallbackToFresh, type S
 import { scaffoldSession, needsOverwriteConfirm, type ScaffoldDeps } from './workspace/scaffold'
 import { addRecent, removeRecent, parseAppState, type AppState } from './workspace/app-config'
 import { extractMissionTitle } from './workspace/mission'
+import { pushErrorMessage } from './workspace/git'
 import { startMcpHttp } from './mcp/mcp-http'
 import { isExternalUrl } from '@shared/links'
-import { IPC, type AppConfig, type GitResult, type LauncherState } from '@shared/ipc'
+import { IPC, type AppConfig, type GitResult, type GitInfo, type LauncherState } from '@shared/ipc'
 import type { ChatEvent, ChatMessage } from '@shared/chat'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -66,6 +67,8 @@ interface Session {
   listReferences(): Promise<string[]>
   listDocs(): Promise<string[]>
   gitCommit(message: string): Promise<GitResult>
+  gitInfo(): Promise<GitInfo>
+  gitPush(remoteUrl: string | null): Promise<GitResult>
   stop(): void
 }
 
@@ -190,6 +193,46 @@ async function createSession(workspaceRoot: string): Promise<Session> {
         return { ok: false, message: 'Commit failed (is git configured?).' }
       }
     },
+    gitInfo: async (): Promise<GitInfo> => {
+      try {
+        const branch = (await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], workspaceRoot)).trim()
+        let remoteUrl: string | null = null
+        try {
+          remoteUrl = (await runGit(['remote', 'get-url', 'origin'], workspaceRoot)).trim()
+        } catch {
+          /* no origin */
+        }
+        return { isRepo: true, branch, hasRemote: !!remoteUrl, remoteUrl }
+      } catch {
+        return { isRepo: false, branch: null, hasRemote: false, remoteUrl: null }
+      }
+    },
+    gitPush: async (remoteUrl): Promise<GitResult> => {
+      try {
+        const branch = (await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], workspaceRoot)).trim()
+        let hasRemote = true
+        try {
+          await runGit(['remote', 'get-url', 'origin'], workspaceRoot)
+        } catch {
+          hasRemote = false
+        }
+        if (!hasRemote) {
+          if (!remoteUrl?.trim()) return { ok: false, message: 'No remote set.' }
+          await runGit(['remote', 'add', 'origin', remoteUrl.trim()], workspaceRoot)
+        } else if (remoteUrl?.trim()) {
+          await runGit(['remote', 'set-url', 'origin', remoteUrl.trim()], workspaceRoot)
+        }
+        // GIT_TERMINAL_PROMPT=0 so a missing credential fails fast instead of hanging.
+        await pexec('git', ['push', '-u', 'origin', branch], {
+          cwd: workspaceRoot,
+          env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+        })
+        return { ok: true, message: `Pushed to origin/${branch}.` }
+      } catch (err) {
+        const e = err as { stdout?: string; stderr?: string }
+        return { ok: false, message: pushErrorMessage((e.stderr ?? '') + (e.stdout ?? '')) }
+      }
+    },
     stop: () => {
       stopping = true
       harness.stop()
@@ -293,6 +336,14 @@ function registerIpc(): void {
   ipcMain.handle(IPC.gitCommit, (_e, message: string): Promise<GitResult> => {
     if (!session) return Promise.resolve({ ok: false, message: 'No workspace open.' })
     return session.gitCommit(message)
+  })
+  ipcMain.handle(IPC.gitInfo, (): Promise<GitInfo> => {
+    if (!session) return Promise.resolve({ isRepo: false, branch: null, hasRemote: false, remoteUrl: null })
+    return session.gitInfo()
+  })
+  ipcMain.handle(IPC.gitPush, (_e, remoteUrl: string | null): Promise<GitResult> => {
+    if (!session) return Promise.resolve({ ok: false, message: 'No workspace open.' })
+    return session.gitPush(remoteUrl)
   })
 
   ipcMain.on(IPC.startSession, () => session?.startSession())
