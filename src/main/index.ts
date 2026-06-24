@@ -14,6 +14,7 @@ import { scaffoldSession, needsOverwriteConfirm, type ScaffoldDeps } from './wor
 import { addRecent, removeRecent, parseAppState, type AppState } from './workspace/app-config'
 import { extractMissionTitle } from './workspace/mission'
 import { startMcpHttp } from './mcp/mcp-http'
+import { isExternalUrl } from '@shared/links'
 import { IPC, type AppConfig, type GitResult, type LauncherState } from '@shared/ipc'
 import type { ChatEvent, ChatMessage } from '@shared/chat'
 
@@ -308,6 +309,19 @@ async function createWindow(): Promise<void> {
     },
   })
   registerIpc()
+
+  // External links in lesson/reference pages (rendered in an iframe) open in the
+  // OS browser; loopback navigation (other lessons/references) stays in-app.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (isExternalUrl(url)) void shell.openExternal(url)
+    return { action: 'deny' }
+  })
+  mainWindow.webContents.on('will-frame-navigate', (event) => {
+    if (isExternalUrl(event.url)) {
+      event.preventDefault()
+      void shell.openExternal(event.url)
+    }
+  })
 
   if (process.env.ELECTRON_RENDERER_URL) {
     await mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)

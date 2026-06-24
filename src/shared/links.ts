@@ -60,6 +60,25 @@ function classifyPath(p: string, ctx: LinkContext): ResolvedLink {
   return { kind: 'reference', file: basename }
 }
 
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1', ''])
+
+/**
+ * Whether a URL points outside the app — a real website or mail link that should
+ * open in the OS browser rather than navigate a lesson iframe. Loopback URLs (the
+ * lesson server) and relative/unparseable links are internal.
+ */
+export function isExternalUrl(url: string): boolean {
+  let u: URL
+  try {
+    u = new URL(url)
+  } catch {
+    return false
+  }
+  if (u.protocol === 'mailto:') return true
+  if (u.protocol === 'http:' || u.protocol === 'https:') return !LOOPBACK_HOSTS.has(u.hostname)
+  return false
+}
+
 /** Lesson number without leading zeros, e.g. "0006-x.html" → "6". '' if none. */
 export function lessonNumber(file: string): string {
   const m = /^(\d+)/.exec(file)

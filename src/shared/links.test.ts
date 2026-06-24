@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveChatLink, lessonNumber, contentLabel, type LinkContext } from './links'
+import { resolveChatLink, isExternalUrl, lessonNumber, contentLabel, type LinkContext } from './links'
 
 const ctx: LinkContext = {
   lessonBase: 'http://127.0.0.1:5000',
@@ -42,6 +42,21 @@ describe('resolveChatLink', () => {
     expect(resolveChatLink('#section', ctx)).toEqual({ kind: 'anchor', hash: '#section' })
     expect(resolveChatLink('../RESOURCES.md', ctx)).toEqual({ kind: 'unknown' })
     expect(resolveChatLink('', ctx)).toEqual({ kind: 'unknown' })
+  })
+})
+
+describe('isExternalUrl', () => {
+  it('flags real websites and mail links', () => {
+    expect(isExternalUrl('https://www.amazon.com/dp/123')).toBe(true)
+    expect(isExternalUrl('http://someblog.dev/post')).toBe(true)
+    expect(isExternalUrl('mailto:a@b.com')).toBe(true)
+  })
+
+  it('treats the loopback lesson server and relative links as internal', () => {
+    expect(isExternalUrl('http://127.0.0.1:51234/lessons/0004-x.html')).toBe(false)
+    expect(isExternalUrl('http://localhost:5173/')).toBe(false)
+    expect(isExternalUrl('0004-the-vertical-slice.html')).toBe(false)
+    expect(isExternalUrl('#anchor')).toBe(false)
   })
 })
 
