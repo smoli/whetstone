@@ -92,6 +92,7 @@ export class LessonServer {
 
   private async handle(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     const url = new URL(req.url ?? '/', 'http://localhost')
+    if (req.method === 'GET') console.log('[lesson-server] req', url.pathname)
 
     if (req.method === 'GET' && url.pathname === '/healthz') {
       return json(res, 200, { ok: true })
