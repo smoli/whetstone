@@ -5,6 +5,15 @@ viewing can talk back to you, and you can act on the live lesson. This is
 optional: in a bare terminal the tools below are simply absent and you behave
 exactly as before (the learner pastes work into chat by hand).
 
+## Showing lessons — do NOT open them yourself
+
+Whetstone displays lessons and reference docs in its own content pane. **Never run
+a CLI command to open a lesson** (no `open`, `xdg-open`, `start`, browser, etc.) —
+that pops the OS browser and breaks the integrated experience. Just create or
+update the file: a newly created lesson opens in the content pane automatically,
+and existing ones are reachable from the sidebar. (The main-skill instruction to
+"open the lesson file by running a CLI command" does not apply inside Whetstone.)
+
 ## How it works
 
 The app spawns you (Claude Code) with the **`teach-bridge` MCP server** connected.

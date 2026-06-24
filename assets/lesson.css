@@ -1,5 +1,5 @@
 /* ============================================================
-   Shared lesson stylesheet — Game Design course
+   Shared lesson stylesheet
    Tufte-inspired: serif body, generous margins, calm palette.
    Linked by every lesson so the course feels like one book.
    ============================================================ */
@@ -10,7 +10,7 @@
   --paper:      #fdfaf4;   /* warm paper background           */
   --paper-card: #f6f0e6;   /* raised panels                   */
   --rule:       #e0d7c7;   /* hairlines                       */
-  --accent:     #b5532a;   /* warm ember/lava accent          */
+  --accent:     #b5532a;   /* warm accent                     */
   --accent-soft:#e9b08e;
   --good:       #4f7a4a;
   --bad:        #a3503c;
@@ -119,15 +119,15 @@ hr {
   margin-bottom: 0.4rem;
 }
 
-/* ---- "Your game" callout — ties lesson to the mission ------- */
-.yourgame {
+/* ---- Mission callout — ties a lesson to the learner's mission ---- */
+.mission-callout {
   background: linear-gradient(180deg, #fbeee2, #f6e6d6);
   border: 1px solid var(--accent-soft);
   border-radius: 10px;
   padding: 1.3rem 1.5rem;
   margin: 1.8rem 0;
 }
-.yourgame .label {
+.mission-callout .label {
   font-family: var(--sans);
   font-size: 0.68rem;
   letter-spacing: 0.14em;
@@ -137,7 +137,7 @@ hr {
   display: block;
   margin-bottom: 0.5rem;
 }
-.yourgame p:last-child { margin-bottom: 0; }
+.mission-callout p:last-child { margin-bottom: 0; }
 
 /* ---- Citations ---------------------------------------------- */
 .cite { font-size: 0.82rem; color: var(--ink-soft); vertical-align: super; }

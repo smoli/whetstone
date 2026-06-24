@@ -109,7 +109,13 @@
           var groups = Array.prototype.slice.call(container.querySelectorAll('.quiz-opts'))
           var qi = groups.indexOf(optsEl)
           if (qi < 0) return
-          var chosen = Array.prototype.slice.call(optsEl.querySelectorAll('.quiz-opt')).indexOf(btn)
+          // Prefer the option's original index (set by quiz.js) so shuffled
+          // rendering doesn't break grading; fall back to DOM position.
+          var attr = btn.getAttribute('data-opt-index')
+          var chosen =
+            attr !== null
+              ? parseInt(attr, 10)
+              : Array.prototype.slice.call(optsEl.querySelectorAll('.quiz-opt')).indexOf(btn)
           if (answers[qi] !== undefined) return
           answers[qi] = chosen
           if (Object.keys(answers).length === questions.length) bridge.reportQuiz(container, questions, answers)

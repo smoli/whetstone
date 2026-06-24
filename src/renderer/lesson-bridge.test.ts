@@ -39,11 +39,11 @@ function setupDom() {
       </script>
       <p id="earn" data-explain="Earn, don't tell">Earn, don't tell</p>
     </article>`
-  // mirror quiz.js's built structure inside the .quiz container
+  // mirror quiz.js's built structure (shuffled: option order ≠ original index)
   const quiz = document.querySelector('.quiz') as HTMLElement
   quiz.innerHTML = `
-    <div class="quiz-opts"><button class="quiz-opt">a</button><button class="quiz-opt">b</button></div>
-    <div class="quiz-opts"><button class="quiz-opt">a</button><button class="quiz-opt">b</button></div>`
+    <div class="quiz-opts"><button class="quiz-opt" data-opt-index="0">a</button><button class="quiz-opt" data-opt-index="1">b</button></div>
+    <div class="quiz-opts"><button class="quiz-opt" data-opt-index="1">b</button><button class="quiz-opt" data-opt-index="0">a</button></div>`
 }
 
 function makeBridge() {
@@ -117,10 +117,10 @@ describe('quiz reporting', () => {
   it('posts quiz_result once all questions are answered, with correct grading', () => {
     makeBridge().init()
     const groups = document.querySelectorAll('.quiz-opts')
-    // Q1 → index 0 (correct), Q2 → index 0 (wrong; answer is 1)
-    ;(groups[0].querySelectorAll('.quiz-opt')[0] as HTMLButtonElement).click()
+    // Q1 → original option 0 (correct), Q2 → original option 0 (wrong; answer is 1)
+    ;(groups[0].querySelector('[data-opt-index="0"]') as HTMLButtonElement).click()
     expect(ofType('quiz_result')).toHaveLength(0) // not all answered yet
-    ;(groups[1].querySelectorAll('.quiz-opt')[0] as HTMLButtonElement).click()
+    ;(groups[1].querySelector('[data-opt-index="0"]') as HTMLButtonElement).click()
     const results = ofType('quiz_result')
     expect(results).toHaveLength(1)
     const body = results[0].body as { score: { correct: number; total: number }; items: { isCorrect: boolean }[] }

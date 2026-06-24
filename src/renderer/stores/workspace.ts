@@ -42,9 +42,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     histIndex.value = history.value.length - 1
   }
 
-  async function refreshContents(): Promise<void> {
+  async function loadLists(): Promise<void> {
     lessons.value = await window.teach.listLessons()
     references.value = await window.teach.listReferences()
+  }
+
+  /**
+   * Reload content lists; if the agent just created new lesson(s), open the
+   * newest in the content view (so it shows in-app rather than the OS browser).
+   */
+  async function refreshContents(): Promise<void> {
+    const prev = new Set(lessons.value)
+    await loadLists()
+    const added = lessons.value.filter((f) => !prev.has(f))
+    if (added.length) navigate({ section: 'lessons', file: added[added.length - 1] })
   }
 
   async function applyConfig(cfg: AppConfig): Promise<void> {
@@ -52,7 +63,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     model.value = cfg.model
     models.value = cfg.models
     session.value = { messages: cfg.messages, resumed: cfg.resumed }
-    await refreshContents()
+    await loadLists()
     // Default the content view to the most recent lesson.
     history.value = []
     histIndex.value = -1

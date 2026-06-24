@@ -37,6 +37,21 @@ describe('content navigation + history', () => {
     expect(ws.current).toEqual({ section: 'lessons', file: 'a.html' })
   })
 
+  it('refreshContents opens a newly created lesson in the content view', async () => {
+    const ws = useWorkspaceStore()
+    let lessonList = ['0001-intro.html']
+    ;(globalThis as unknown as { window: { teach: unknown } }).window = {
+      teach: {
+        listLessons: async () => lessonList,
+        listReferences: async () => [],
+      },
+    }
+    ws.openItem('lessons', '0001-intro.html')
+    lessonList = ['0001-intro.html', '0002-the-next-lesson.html'] // agent created lesson 2
+    await ws.refreshContents()
+    expect(ws.current).toEqual({ section: 'lessons', file: '0002-the-next-lesson.html' })
+  })
+
   it('onNavigated ignores the echo of the current page but records in-page jumps', () => {
     const ws = useWorkspaceStore()
     ws.openItem('lessons', 'a.html')
