@@ -58,6 +58,21 @@ describe('LessonServer', () => {
     expect(html.indexOf('teach-assets/bridge.js')).toBeLessThan(html.indexOf('</body>'))
   })
 
+  it('replays persisted patches by injecting them into the bridge config', async () => {
+    await fs.writeFile(
+      path.join(root, 'lessons', '0004.patches.json'),
+      JSON.stringify([{ selector: '.aside', mode: 'replace', html: '<div class="aside">moved</div>' }]),
+    )
+    const html = await (await fetch(`${base}/lessons/0004.html`)).text()
+    expect(html).toContain('"patches"')
+    expect(html).toContain('moved')
+  })
+
+  it('injects an empty patches array when there is no sidecar', async () => {
+    const html = await (await fetch(`${base}/lessons/0004.html`)).text()
+    expect(html).toContain('"patches":[]')
+  })
+
   it('serves the app bridge.js from /teach-assets/', async () => {
     const res = await fetch(`${base}/teach-assets/bridge.js`)
     expect(res.status).toBe(200)

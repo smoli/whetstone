@@ -192,6 +192,15 @@
       else if (cmd.mode === 'after') target.insertAdjacentHTML('afterend', cmd.html)
     }
 
+    // Replay patches the agent applied in earlier sessions (served in the
+    // injected config from the lesson's sidecar) so they survive a reload.
+    bridge.replayPatches = function () {
+      if (!Array.isArray(state.patches)) return
+      state.patches.forEach(function (p) {
+        bridge.applyPatch(p)
+      })
+    }
+
     bridge.connect = function () {
       if (!state.wsUrl || typeof WebSocket === 'undefined') return
       try {
@@ -230,6 +239,7 @@
       bridge.enhanceExercises()
       bridge.enhanceQuizzes()
       bridge.enhanceExplain()
+      bridge.replayPatches()
       bridge.connect()
       bridge.post({ type: 'lesson_opened', eventId: uid(), lessonId: bridge.lessonId, ts: nowIso() })
       return bridge

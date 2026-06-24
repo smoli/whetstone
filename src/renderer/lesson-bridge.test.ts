@@ -144,6 +144,17 @@ describe('incoming agent commands', () => {
     expect(slot?.classList.contains('show')).toBe(true)
   })
 
+  it('replays persisted patches from the injected config on init', () => {
+    TeachBridge.create({
+      base: 'http://127.0.0.1:9999',
+      lessonId: '0004',
+      wsUrl: null,
+      fetchImpl: fakeFetch,
+      patches: [{ selector: '#earn', mode: 'replace', html: '<p id="earn">Replayed from history</p>' }],
+    }).init()
+    expect(document.getElementById('earn')?.textContent).toContain('Replayed from history')
+  })
+
   it('applies a patch_lesson replace', () => {
     const b = makeBridge()
     b.init()

@@ -139,7 +139,7 @@ export class LessonServer {
     try {
       if (allowInject && ext === '.html' && this.opts.injectBridge !== false) {
         const html = await fs.readFile(abs, 'utf8')
-        const injected = this.injectBridge(html, lessonId)
+        const injected = await this.injectBridge(html, lessonId)
         res.statusCode = 200
         res.setHeader('content-type', CONTENT_TYPES['.html'])
         res.end(injected)
@@ -155,16 +155,28 @@ export class LessonServer {
   }
 
   /** Inject the bridge config global + bridge.js script just before </body>. */
-  injectBridge(html: string, lessonId: string): string {
+  async injectBridge(html: string, lessonId: string): Promise<string> {
     const config = {
       base: this.httpBase(),
       lessonId,
       wsUrl: this.wsUrl(),
+      patches: await this.readPatches(lessonId),
     }
     const snippet =
       `\n<script>window.__TEACH_BRIDGE__=${JSON.stringify(config)};</script>` +
       `\n<script src="/teach-assets/bridge.js"></script>\n`
     return html.includes('</body>') ? html.replace('</body>', snippet + '</body>') : html + snippet
+  }
+
+  /** Persisted patches for a lesson (from the BridgeCore sidecar), for replay on load. */
+  private async readPatches(lessonId: string): Promise<unknown[]> {
+    try {
+      const raw = await fs.readFile(path.resolve(this.opts.workspaceRoot, 'lessons', `${lessonId}.patches.json`), 'utf8')
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
   }
 }
 
