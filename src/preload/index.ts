@@ -4,6 +4,7 @@ import type { ChatEvent, ClaudeError } from '@shared/chat'
 
 const api: TeachApi = {
   sendChat: (text) => ipcRenderer.send(IPC.sendChat, text),
+  startSession: () => ipcRenderer.send(IPC.startSession),
   onChatEvent: (cb) => {
     const listener = (_e: unknown, payload: ChatEvent) => cb(payload)
     ipcRenderer.on(IPC.chatEvent, listener)

@@ -46,6 +46,17 @@ async function startServices(window: BrowserWindow): Promise<Services> {
   harness.start()
   wireBridgeToClaude(bridge, harness)
 
+  // The teach skill has disable-model-invocation: true, so it must be invoked
+  // explicitly. Bootstrap the session once with /teach; the skill then reads the
+  // workspace (MISSION.md, lessons/, learning-records/) and its guidance stays in
+  // context for every later turn and lesson event.
+  let sessionStarted = false
+  ipcMain.on(IPC.startSession, () => {
+    if (sessionStarted) return
+    sessionStarted = true
+    harness.send('/teach')
+  })
+
   ipcMain.on(IPC.sendChat, (_e, text: string) => harness.send(text))
   ipcMain.handle(IPC.listLessons, async () => {
     const names = await new NodeWorkspaceFs(workspaceRoot).list('lessons')

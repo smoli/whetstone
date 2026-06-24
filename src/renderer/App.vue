@@ -14,6 +14,9 @@ onMounted(async () => {
   offEvent = window.teach.onChatEvent((e) => chat.applyEvent(e))
   offError = window.teach.onChatError((e) => chat.applyError(e))
   await ws.load()
+  // Listeners are attached — now bootstrap the teaching session so no early
+  // agent output is lost to a race.
+  window.teach.startSession()
 })
 
 onUnmounted(() => {

@@ -1,4 +1,4 @@
-import { defineConfig } from 'electron-vite'
+import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath } from 'node:url'
 
@@ -9,10 +9,12 @@ const alias = {
 export default defineConfig({
   main: {
     resolve: { alias },
+    plugins: [externalizeDepsPlugin()],
     build: { rollupOptions: { input: { index: 'src/main/index.ts' } } },
   },
   preload: {
     resolve: { alias },
+    plugins: [externalizeDepsPlugin()],
     build: { rollupOptions: { input: { index: 'src/preload/index.ts' } } },
   },
   renderer: {

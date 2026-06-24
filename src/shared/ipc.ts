@@ -3,6 +3,7 @@ import type { ChatEvent, ClaudeError } from './chat'
 /** IPC channel names — single source of truth for main + preload. */
 export const IPC = {
   sendChat: 'teach:sendChat',
+  startSession: 'teach:startSession',
   chatEvent: 'teach:chatEvent',
   chatError: 'teach:chatError',
   listLessons: 'teach:listLessons',
@@ -19,6 +20,8 @@ export interface AppConfig {
 /** The typed surface the preload exposes to the renderer as `window.teach`. */
 export interface TeachApi {
   sendChat(text: string): void
+  /** Bootstrap the teaching session by invoking the teach skill (idempotent). */
+  startSession(): void
   onChatEvent(cb: (e: ChatEvent) => void): () => void
   onChatError(cb: (e: ClaudeError) => void): () => void
   listLessons(): Promise<string[]>
