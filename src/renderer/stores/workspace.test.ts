@@ -44,6 +44,7 @@ describe('content navigation + history', () => {
       teach: {
         listLessons: async () => lessonList,
         listReferences: async () => [],
+        listDocs: async () => [],
       },
     }
     ws.openItem('lessons', '0001-intro.html')

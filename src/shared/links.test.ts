@@ -38,9 +38,14 @@ describe('resolveChatLink', () => {
     })
   })
 
-  it('returns anchor for hash links and unknown for non-html', () => {
+  it('routes workspace docs (MISSION/RESOURCES/NOTES) to the doc section', () => {
+    expect(resolveChatLink('../RESOURCES.md', ctx)).toEqual({ kind: 'doc', file: 'RESOURCES.md' })
+    expect(resolveChatLink('MISSION.md', ctx)).toEqual({ kind: 'doc', file: 'MISSION.md' })
+  })
+
+  it('returns anchor for hash links and unknown for other non-html', () => {
     expect(resolveChatLink('#section', ctx)).toEqual({ kind: 'anchor', hash: '#section' })
-    expect(resolveChatLink('../RESOURCES.md', ctx)).toEqual({ kind: 'unknown' })
+    expect(resolveChatLink('../GLOSSARY.txt', ctx)).toEqual({ kind: 'unknown' })
     expect(resolveChatLink('', ctx)).toEqual({ kind: 'unknown' })
   })
 })

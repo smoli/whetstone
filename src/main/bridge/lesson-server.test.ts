@@ -73,6 +73,21 @@ describe('LessonServer', () => {
     expect(html).toContain('"patches":[]')
   })
 
+  it('renders a workspace markdown doc to HTML at /doc/', async () => {
+    await fs.writeFile(path.join(root, 'MISSION.md'), '# Mission: Learn chess\n\nBecause **endgames**.')
+    const res = await fetch(`${base}/doc/MISSION.md`)
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('text/html')
+    const html = await res.text()
+    expect(html).toContain('<h1>Mission: Learn chess</h1>')
+    expect(html).toContain('<strong>endgames</strong>')
+    expect(html).toContain('/teach-assets/bridge.js') // bridge injected for nav sync
+  })
+
+  it('refuses non-markdown doc paths', async () => {
+    expect((await fetch(`${base}/doc/secret.txt`)).status).toBe(403)
+  })
+
   it('serves the app bridge.js from /teach-assets/', async () => {
     const res = await fetch(`${base}/teach-assets/bridge.js`)
     expect(res.status).toBe(200)

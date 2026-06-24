@@ -22,6 +22,7 @@ function onListClick(e: MouseEvent): void {
   })
   if (link.kind === 'lesson') ws.openItem('lessons', link.file)
   else if (link.kind === 'reference') ws.openItem('reference', link.file)
+  else if (link.kind === 'doc') ws.openItem('doc', link.file)
   else if (link.kind === 'external') window.teach.openExternal(link.url)
 }
 const draft = ref('')

@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import type { AppConfig, ModelOption, RecentWorkspace, GitResult } from '@shared/ipc'
 import type { ChatMessage } from '@shared/chat'
 
-export type ContentSection = 'lessons' | 'reference'
+export type ContentSection = 'lessons' | 'reference' | 'doc'
 export interface ContentRef {
   section: ContentSection
   file: string
@@ -15,6 +15,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const config = ref<AppConfig | null>(null)
   const lessons = ref<string[]>([])
   const references = ref<string[]>([])
+  const docs = ref<string[]>([])
   const current = ref<ContentRef | null>(null)
   const history = ref<ContentRef[]>([])
   const histIndex = ref(-1)
@@ -45,6 +46,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function loadLists(): Promise<void> {
     lessons.value = await window.teach.listLessons()
     references.value = await window.teach.listReferences()
+    docs.value = await window.teach.listDocs()
   }
 
   /**
@@ -140,7 +142,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   return {
-    active, recent, config, lessons, references, current, currentUrl, canBack, canForward, model, models, session,
+    active, recent, config, lessons, references, docs, current, currentUrl, canBack, canForward, model, models, session,
     loadLauncher, openFolder, openRecent, newSession, toLauncher, openItem, onNavigated, back, forward,
     refreshContents, setModel, commit,
   }

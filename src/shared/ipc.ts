@@ -10,6 +10,7 @@ export const IPC = {
   chatError: 'teach:chatError',
   listLessons: 'teach:listLessons',
   listReferences: 'teach:listReferences',
+  listDocs: 'teach:listDocs',
   openExternal: 'teach:openExternal',
   getConfig: 'teach:getConfig',
   getLauncher: 'teach:getLauncher',
@@ -74,6 +75,8 @@ export interface TeachApi {
   onChatError(cb: (e: ClaudeError) => void): () => void
   listLessons(): Promise<string[]>
   listReferences(): Promise<string[]>
+  /** Workspace docs that exist (MISSION.md, RESOURCES.md, NOTES.md). */
+  listDocs(): Promise<string[]>
   /** Open a URL in the system browser. */
   openExternal(url: string): void
   getConfig(): Promise<AppConfig>

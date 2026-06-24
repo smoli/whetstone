@@ -250,7 +250,8 @@
       if (!poster) return
       var path = (typeof location !== 'undefined' && location.pathname) || ''
       var file = path.split('/').pop() || ''
-      var section = path.indexOf('/reference/') !== -1 ? 'reference' : 'lessons'
+      var section =
+        path.indexOf('/reference/') !== -1 ? 'reference' : path.indexOf('/doc/') !== -1 ? 'doc' : 'lessons'
       poster({ source: 'teach-bridge', kind: 'navigated', section: section, file: file }, '*')
     }
 

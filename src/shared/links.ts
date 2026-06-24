@@ -19,6 +19,7 @@ export interface LinkContext {
 export type ResolvedLink =
   | { kind: 'lesson'; file: string }
   | { kind: 'reference'; file: string }
+  | { kind: 'doc'; file: string }
   | { kind: 'external'; url: string }
   | { kind: 'anchor'; hash: string }
   | { kind: 'unknown' }
@@ -49,6 +50,7 @@ function classifyPath(p: string, ctx: LinkContext): ResolvedLink {
 
   if (ctx.lessons.includes(basename)) return { kind: 'lesson', file: basename }
   if (ctx.references.includes(basename)) return { kind: 'reference', file: basename }
+  if (/^(MISSION|RESOURCES|NOTES)\.md$/i.test(basename)) return { kind: 'doc', file: basename }
 
   if (!/\.html?$/i.test(basename)) return { kind: 'unknown' }
 

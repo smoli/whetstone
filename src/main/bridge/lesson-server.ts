@@ -1,6 +1,7 @@
 import http from 'node:http'
 import path from 'node:path'
 import { promises as fs } from 'node:fs'
+import { marked } from 'marked'
 import { WebSocketServer, type WebSocket } from 'ws'
 import type { Bridge, BroadcastClient } from './bridge'
 
@@ -108,6 +109,10 @@ export class LessonServer {
       return json(res, result.ok ? 200 : 422, result)
     }
 
+    if (req.method === 'GET' && url.pathname.startsWith('/doc/')) {
+      return this.serveDoc(url.pathname.slice('/doc/'.length), res)
+    }
+
     if (req.method === 'GET' && url.pathname.startsWith('/teach-assets/')) {
       if (!this.opts.appAssetsRoot) return json(res, 404, { ok: false, error: 'not found' })
       const rel = url.pathname.slice('/teach-assets/'.length)
@@ -157,6 +162,32 @@ export class LessonServer {
     } catch {
       return json(res, 404, { ok: false, error: 'not found' })
     }
+  }
+
+  /** Render a workspace markdown doc (MISSION.md, etc.) to a styled HTML page. */
+  private async serveDoc(name: string, res: http.ServerResponse): Promise<void> {
+    const rel = decodeURIComponent(name)
+    const abs = path.resolve(this.opts.workspaceRoot, rel)
+    const rootWithSep = path.resolve(this.opts.workspaceRoot) + path.sep
+    if (!abs.startsWith(rootWithSep) || !abs.endsWith('.md')) {
+      return json(res, 403, { ok: false, error: 'forbidden' })
+    }
+    let md: string
+    try {
+      md = await fs.readFile(abs, 'utf8')
+    } catch {
+      return json(res, 404, { ok: false, error: 'not found' })
+    }
+    const bodyHtml = marked.parse(md, { async: false, gfm: true })
+    const page =
+      `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
+      `<meta name="viewport" content="width=device-width, initial-scale=1">` +
+      `<title>${rel}</title><link rel="stylesheet" href="/assets/lesson.css"></head>` +
+      `<body><article class="lesson">${bodyHtml}</article></body></html>`
+    const injected = await this.injectBridge(page, rel.replace(/\.md$/, ''))
+    res.statusCode = 200
+    res.setHeader('content-type', CONTENT_TYPES['.html'])
+    res.end(injected)
   }
 
   /** Inject the bridge config global + bridge.js script just before </body>. */

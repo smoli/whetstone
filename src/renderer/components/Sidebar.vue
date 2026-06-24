@@ -2,12 +2,19 @@
 import { useWorkspaceStore } from '../stores/workspace'
 import { lessonNumber, contentLabel } from '@shared/links'
 
+import type { ContentSection } from '../stores/workspace'
+
 const ws = useWorkspaceStore()
 defineProps<{ collapsed: boolean }>()
 const emit = defineEmits<{ toggle: []; sessions: [] }>()
 
-function isActive(section: 'lessons' | 'reference', file: string): boolean {
+function isActive(section: ContentSection, file: string): boolean {
   return ws.current?.section === section && ws.current?.file === file
+}
+
+function docLabel(file: string): string {
+  const base = file.replace(/\.md$/i, '').toLowerCase()
+  return base.charAt(0).toUpperCase() + base.slice(1)
 }
 </script>
 
@@ -70,6 +77,23 @@ function isActive(section: 'lessons' | 'reference', file: string): boolean {
           @click="ws.openItem('reference', file)"
         >
           <span class="title">{{ contentLabel(file) || file }}</span>
+        </button>
+      </section>
+
+      <section
+        v-if="ws.docs.length"
+        class="group"
+      >
+        <p class="group-label">
+          Workspace
+        </p>
+        <button
+          v-for="file in ws.docs"
+          :key="file"
+          :class="['item', { active: isActive('doc', file) }]"
+          @click="ws.openItem('doc', file)"
+        >
+          <span class="title">{{ docLabel(file) }}</span>
         </button>
       </section>
     </div>

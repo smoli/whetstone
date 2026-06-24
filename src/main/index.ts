@@ -64,6 +64,7 @@ interface Session {
   setModel(model: string): void
   listLessons(): Promise<string[]>
   listReferences(): Promise<string[]>
+  listDocs(): Promise<string[]>
   gitCommit(message: string): Promise<GitResult>
   stop(): void
 }
@@ -172,6 +173,12 @@ async function createSession(workspaceRoot: string): Promise<Session> {
     },
     listLessons: async () => (await wfs.list('lessons')).filter((n) => n.endsWith('.html')).sort(),
     listReferences: async () => (await wfs.list('reference')).filter((n) => n.endsWith('.html')).sort(),
+    listDocs: async () => {
+      const present = await Promise.all(
+        ['MISSION.md', 'RESOURCES.md', 'NOTES.md'].map(async (n) => ((await wfs.read(n)) !== null ? n : null)),
+      )
+      return present.filter((n): n is string => n !== null)
+    },
     gitCommit: async (message) => {
       try {
         await runGit(['add', '-A'], workspaceRoot)
@@ -294,6 +301,7 @@ function registerIpc(): void {
   ipcMain.on(IPC.setModel, (_e, model: string) => session?.setModel(model))
   ipcMain.handle(IPC.listLessons, () => session?.listLessons() ?? Promise.resolve([]))
   ipcMain.handle(IPC.listReferences, () => session?.listReferences() ?? Promise.resolve([]))
+  ipcMain.handle(IPC.listDocs, () => session?.listDocs() ?? Promise.resolve([]))
   ipcMain.on(IPC.openExternal, (_e, url: string) => {
     if (/^https?:\/\//i.test(url) || /^mailto:/i.test(url)) void shell.openExternal(url)
   })
