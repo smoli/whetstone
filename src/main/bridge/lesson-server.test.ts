@@ -82,6 +82,12 @@ describe('LessonServer', () => {
     expect(body).not.toContain('"ok":false')
   })
 
+  it('redirects a root-level .md (e.g. a lesson\'s ../RESOURCES.md) into /doc/', async () => {
+    const res = await fetch(`${base}/RESOURCES.md`, { redirect: 'manual' })
+    expect(res.status).toBe(302)
+    expect(res.headers.get('location')).toBe('/doc/RESOURCES.md')
+  })
+
   it('renders a workspace markdown doc to HTML at /doc/', async () => {
     await fs.writeFile(path.join(root, 'MISSION.md'), '# Mission: Learn chess\n\nBecause **endgames**.')
     const res = await fetch(`${base}/doc/MISSION.md`)

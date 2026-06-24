@@ -130,6 +130,16 @@ export class LessonServer {
       return this.serveFrom(this.opts.workspaceRoot, rel, res, true, lessonId)
     }
 
+    // Lesson/reference pages link to workspace docs relatively (e.g.
+    // "../RESOURCES.md"), which lands at a root-level .md path. Redirect those
+    // into the /doc/ renderer so they open in-app instead of 404ing.
+    if (req.method === 'GET' && /^\/[^/]+\.md$/i.test(url.pathname)) {
+      res.statusCode = 302
+      res.setHeader('location', '/doc' + url.pathname)
+      res.end()
+      return
+    }
+
     console.warn('[lesson-server] no route:', req.method, url.pathname)
     return json(res, 404, { ok: false, error: 'not found' })
   }

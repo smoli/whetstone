@@ -116,7 +116,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   /** A page loaded in the content iframe announced itself (incl. in-page links). */
   function onNavigated(section: ContentSection, file: string): void {
-    navigate({ section, file })
+    // Canonicalize against the known list so a mis-cased path still highlights.
+    const list = section === 'lessons' ? lessons.value : section === 'reference' ? references.value : docs.value
+    const canonical = list.find((f) => f.toLowerCase() === file.toLowerCase()) ?? file
+    navigate({ section, file: canonical })
   }
 
   function back(): void {

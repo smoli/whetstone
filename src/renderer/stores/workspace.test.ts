@@ -53,6 +53,13 @@ describe('content navigation + history', () => {
     expect(ws.current).toEqual({ section: 'lessons', file: '0002-the-next-lesson.html' })
   })
 
+  it('onNavigated canonicalizes a mis-cased file against the known list', () => {
+    const ws = useWorkspaceStore()
+    ws.docs.push('MISSION.md')
+    ws.onNavigated('doc', 'MISSION.MD')
+    expect(ws.current).toEqual({ section: 'doc', file: 'MISSION.md' })
+  })
+
   it('onNavigated ignores the echo of the current page but records in-page jumps', () => {
     const ws = useWorkspaceStore()
     ws.openItem('lessons', 'a.html')
