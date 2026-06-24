@@ -209,7 +209,24 @@
       }
     }
 
+    bridge.injectStyles = function () {
+      if (bridge.doc.getElementById('teach-bridge-styles')) return
+      var style = bridge.doc.createElement('style')
+      style.id = 'teach-bridge-styles'
+      style.textContent =
+        '.teach-submit{font:inherit;margin-top:.8rem;padding:.5rem .9rem;border:1px solid var(--accent,#2b6cb0);' +
+        'background:var(--accent,#2b6cb0);color:#fff;border-radius:.35rem;cursor:pointer}' +
+        '.teach-submit:disabled{opacity:.6;cursor:default}' +
+        '.teach-feedback{margin-top:1rem;padding:0 1rem;border-left:3px solid var(--accent,#2b6cb0);' +
+        'display:none}.teach-feedback.show{display:block}' +
+        '.teach-explain{font:inherit;font-size:.7rem;margin-left:.4rem;padding:.05rem .4rem;border:1px solid var(--rule,#ccc);' +
+        'background:transparent;color:var(--accent,#2b6cb0);border-radius:.3rem;cursor:pointer;vertical-align:middle}'
+      var head = bridge.doc.head || bridge.doc.querySelector('head') || bridge.doc.body
+      if (head) head.appendChild(style)
+    }
+
     bridge.init = function () {
+      bridge.injectStyles()
       bridge.enhanceExercises()
       bridge.enhanceQuizzes()
       bridge.enhanceExplain()

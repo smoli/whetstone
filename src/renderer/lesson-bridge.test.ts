@@ -71,6 +71,13 @@ describe('bridge init', () => {
     makeBridge().init()
     expect(document.querySelector('.exercise [data-teach-submit]')).not.toBeNull()
   })
+
+  it('injects affordance styles once', () => {
+    const b = makeBridge()
+    b.init()
+    b.init()
+    expect(document.querySelectorAll('#teach-bridge-styles')).toHaveLength(1)
+  })
 })
 
 describe('exercise submission', () => {
