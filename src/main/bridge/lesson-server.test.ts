@@ -73,6 +73,15 @@ describe('LessonServer', () => {
     expect(html).toContain('"patches":[]')
   })
 
+  it('shows a friendly HTML page (not raw JSON) for a missing content page', async () => {
+    const res = await fetch(`${base}/lessons/9999-missing.html`)
+    expect(res.status).toBe(404)
+    expect(res.headers.get('content-type')).toContain('text/html')
+    const body = await res.text()
+    expect(body).toContain('Not found')
+    expect(body).not.toContain('"ok":false')
+  })
+
   it('renders a workspace markdown doc to HTML at /doc/', async () => {
     await fs.writeFile(path.join(root, 'MISSION.md'), '# Mission: Learn chess\n\nBecause **endgames**.')
     const res = await fetch(`${base}/doc/MISSION.md`)

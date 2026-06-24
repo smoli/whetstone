@@ -160,8 +160,27 @@ export class LessonServer {
       res.setHeader('content-type', CONTENT_TYPES[ext] ?? 'application/octet-stream')
       res.end(data)
     } catch {
+      // A missing content page is shown in the iframe, so render a friendly page
+      // instead of raw JSON. Sub-resources (assets) keep the JSON 404.
+      if (allowInject && ext === '.html') return this.serveNotFound(path.basename(rel), res)
       return json(res, 404, { ok: false, error: 'not found' })
     }
+  }
+
+  private serveNotFound(name: string, res: http.ServerResponse): void {
+    res.statusCode = 404
+    res.setHeader('content-type', CONTENT_TYPES['.html'])
+    res.end(
+      `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
+        `<meta name="viewport" content="width=device-width, initial-scale=1">` +
+        `<link rel="stylesheet" href="/assets/lesson.css">` +
+        `<style>body{display:grid;place-items:center;min-height:100vh;margin:0}` +
+        `.nf{max-width:32rem;text-align:center;padding:2rem}` +
+        `.nf h1{font-size:1.25rem}.nf p{color:var(--ink-soft,#5c544c)}</style></head>` +
+        `<body><div class="nf"><h1>Not found</h1>` +
+        `<p>“${escapeHtml(name)}” isn’t in this workspace yet. Ask your teacher to create it, ` +
+        `or pick another item from the sidebar.</p></div></body></html>`,
+    )
   }
 
   /** Render a workspace markdown doc (MISSION.md, etc.) to a styled HTML page. */
@@ -176,7 +195,7 @@ export class LessonServer {
     try {
       md = await fs.readFile(abs, 'utf8')
     } catch {
-      return json(res, 404, { ok: false, error: 'not found' })
+      return this.serveNotFound(rel, res)
     }
     const bodyHtml = marked.parse(md, { async: false, gfm: true })
     const page =
@@ -220,6 +239,10 @@ function lessonIdFromPath(pathname: string): string {
   const file = (pathname.split('/').pop() ?? '').replace(/\.html?$/, '')
   const m = /^(\d+)/.exec(file)
   return m ? m[1] : file || 'unknown'
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string)
 }
 
 function json(res: http.ServerResponse, status: number, body: unknown): void {
