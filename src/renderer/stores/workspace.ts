@@ -3,9 +3,10 @@ import { ref, computed } from 'vue'
 import type { AppConfig, ModelOption, RecentWorkspace, GitResult } from '@shared/ipc'
 import type { ChatMessage } from '@shared/chat'
 
-/** A lesson file ("0004-the-vertical-slice.html") → its stem ("0004-the-vertical-slice"). */
-function stem(file: string): string {
-  return file.replace(/\.html?$/, '')
+export type ContentSection = 'lessons' | 'reference'
+export interface ContentRef {
+  section: ContentSection
+  file: string
 }
 
 export const useWorkspaceStore = defineStore('workspace', () => {
@@ -13,27 +14,37 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const recent = ref<RecentWorkspace[]>([])
   const config = ref<AppConfig | null>(null)
   const lessons = ref<string[]>([])
-  const currentLesson = ref<string | null>(null)
+  const references = ref<string[]>([])
+  const current = ref<ContentRef | null>(null)
   const model = ref('default')
   const models = ref<ModelOption[]>([])
   const session = ref<{ messages: ChatMessage[]; resumed: boolean }>({ messages: [], resumed: false })
 
   const currentUrl = computed(() => {
-    if (!config.value || !currentLesson.value) return null
-    return window.teach.lessonUrl(config.value.lessonBase, stem(currentLesson.value))
+    if (!config.value || !current.value) return null
+    return `${config.value.lessonBase}/${current.value.section}/${current.value.file}`
   })
+
+  async function refreshContents(): Promise<void> {
+    lessons.value = await window.teach.listLessons()
+    references.value = await window.teach.listReferences()
+  }
 
   async function applyConfig(cfg: AppConfig): Promise<void> {
     config.value = cfg
     model.value = cfg.model
     models.value = cfg.models
     session.value = { messages: cfg.messages, resumed: cfg.resumed }
-    lessons.value = await window.teach.listLessons()
-    currentLesson.value = lessons.value[0] ?? null
+    await refreshContents()
+    // Default the content view to the most recent lesson.
+    current.value = lessons.value.length
+      ? { section: 'lessons', file: lessons.value[lessons.value.length - 1] }
+      : references.value.length
+        ? { section: 'reference', file: references.value[0] }
+        : null
     active.value = true
   }
 
-  /** Load launcher state; if a workspace is already open, hydrate it. */
   async function loadLauncher(): Promise<void> {
     const l = await window.teach.getLauncher()
     recent.value = l.recent
@@ -65,8 +76,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     active.value = false
   }
 
-  function open(file: string): void {
-    currentLesson.value = file
+  function openItem(section: ContentSection, file: string): void {
+    current.value = { section, file }
   }
 
   function setModel(id: string): void {
@@ -80,7 +91,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   return {
-    active, recent, config, lessons, currentLesson, currentUrl, model, models, session,
-    loadLauncher, openFolder, openRecent, newSession, toLauncher, open, setModel, commit,
+    active, recent, config, lessons, references, current, currentUrl, model, models, session,
+    loadLauncher, openFolder, openRecent, newSession, toLauncher, openItem, refreshContents, setModel, commit,
   }
 })

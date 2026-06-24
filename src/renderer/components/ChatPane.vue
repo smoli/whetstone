@@ -3,9 +3,27 @@ import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { useChatStore } from '../stores/chat'
 import { useWorkspaceStore } from '../stores/workspace'
 import { renderMarkdown } from '../markdown'
+import { resolveChatLink } from '@shared/links'
 
 const chat = useChatStore()
 const ws = useWorkspaceStore()
+
+// Intercept link clicks in chat: open lessons/references in the content view and
+// real URLs in the browser. preventDefault keeps the chat scroll exactly put.
+function onListClick(e: MouseEvent): void {
+  const anchor = (e.target as HTMLElement).closest('a')
+  if (!anchor) return
+  e.preventDefault()
+  const href = anchor.getAttribute('href') ?? ''
+  const link = resolveChatLink(href, {
+    lessonBase: ws.config?.lessonBase ?? '',
+    lessons: ws.lessons,
+    references: ws.references,
+  })
+  if (link.kind === 'lesson') ws.openItem('lessons', link.file)
+  else if (link.kind === 'reference') ws.openItem('reference', link.file)
+  else if (link.kind === 'external') window.teach.openExternal(link.url)
+}
 const draft = ref('')
 const list = ref<HTMLElement | null>(null)
 
@@ -66,6 +84,7 @@ watch(
     <div
       ref="list"
       class="chat-list"
+      @click="onListClick"
     >
       <template
         v-for="m in chat.messages"
@@ -179,9 +198,11 @@ watch(
   white-space: pre-wrap;
 }
 .msg--assistant {
-  align-self: flex-start;
-  background: var(--paper-card);
-  border: 1px solid var(--rule);
+  align-self: stretch;
+  max-width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 0.1rem 0;
   color: var(--ink);
 }
 .msg--system {

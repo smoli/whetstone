@@ -1,17 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useWorkspaceStore } from '../stores/workspace'
+import { contentLabel } from '@shared/links'
 
 const ws = useWorkspaceStore()
 const commitMsg = ref('')
 const commitStatus = ref('')
 
-function label(file: string): string {
-  return file
-    .replace(/\.html?$/, '')
-    .replace(/^\d+-/, '')
-    .replace(/-/g, ' ')
-}
+const title = computed(() => (ws.current ? contentLabel(ws.current.file) || ws.current.file : ''))
 
 async function commit(): Promise<void> {
   commitStatus.value = '…'
@@ -22,10 +18,10 @@ async function commit(): Promise<void> {
 </script>
 
 <template>
-  <section class="lesson">
-    <header class="lesson-head">
+  <section class="content">
+    <header class="content-head">
       <div class="bar">
-        <strong class="ws-name">{{ ws.config?.workspaceName ?? 'Workspace' }}</strong>
+        <span class="title">{{ title }}</span>
         <div class="spacer" />
         <input
           v-model="commitMsg"
@@ -40,40 +36,21 @@ async function commit(): Promise<void> {
         >
           Commit
         </button>
-        <button
-          class="switch-btn"
-          title="Switch session"
-          @click="ws.toLauncher()"
-        >
-          Sessions
-        </button>
+        <span
+          v-if="commitStatus"
+          class="commit-status"
+        >{{ commitStatus }}</span>
       </div>
-      <p
-        v-if="commitStatus"
-        class="commit-status"
-      >
-        {{ commitStatus }}
-      </p>
-      <nav class="lesson-nav">
-        <button
-          v-for="file in ws.lessons"
-          :key="file"
-          :class="{ active: file === ws.currentLesson }"
-          @click="ws.open(file)"
-        >
-          {{ label(file) }}
-        </button>
-      </nav>
     </header>
     <iframe
       v-if="ws.currentUrl"
       :src="ws.currentUrl"
-      class="lesson-frame"
-      title="lesson"
+      class="content-frame"
+      title="content"
     />
     <div
       v-else
-      class="lesson-empty"
+      class="content-empty"
     >
       No lessons yet — ask your teacher to begin.
     </div>
@@ -81,14 +58,14 @@ async function commit(): Promise<void> {
 </template>
 
 <style scoped>
-.lesson {
+.content {
   display: flex;
   flex-direction: column;
   height: 100%;
   background: var(--paper);
 }
-.lesson-head {
-  padding: 0.6rem 1rem;
+.content-head {
+  padding: 0.55rem 1rem;
   border-bottom: 1px solid var(--rule);
   background: var(--paper-card);
 }
@@ -97,9 +74,13 @@ async function commit(): Promise<void> {
   align-items: center;
   gap: 0.5rem;
 }
-.ws-name {
+.title {
   font-family: var(--serif);
-  font-size: 1.05rem;
+  font-size: 1rem;
+  text-transform: capitalize;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .spacer {
   flex: 1;
@@ -112,58 +93,31 @@ async function commit(): Promise<void> {
   border-radius: 0.4rem;
   background: #fff;
   color: var(--ink);
-  width: 14rem;
+  width: 13rem;
 }
-.commit-btn,
-.switch-btn {
+.commit-btn {
   font-family: var(--sans);
   font-size: 0.78rem;
   font-weight: 600;
   padding: 0.3rem 0.7rem;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--accent);
   border-radius: 0.4rem;
-  background: #fff;
-  color: var(--ink);
-  cursor: pointer;
-}
-.commit-btn {
   background: var(--accent);
   color: #fff;
-  border-color: var(--accent);
+  cursor: pointer;
 }
 .commit-status {
-  margin: 0.4rem 0 0;
   font-size: 0.76rem;
   color: var(--ink-soft);
+  white-space: nowrap;
 }
-.lesson-nav {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  margin-top: 0.5rem;
-}
-.lesson-nav button {
-  font-family: var(--sans);
-  font-size: 0.8rem;
-  padding: 0.2rem 0.5rem;
-  border: 1px solid var(--rule);
-  background: #fff;
-  color: var(--ink);
-  border-radius: 0.3rem;
-  cursor: pointer;
-}
-.lesson-nav button.active {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
-.lesson-frame {
+.content-frame {
   flex: 1;
   border: 0;
   width: 100%;
   background: #fff;
 }
-.lesson-empty {
+.content-empty {
   flex: 1;
   display: grid;
   place-items: center;

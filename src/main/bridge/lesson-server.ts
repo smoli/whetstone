@@ -114,7 +114,12 @@ export class LessonServer {
       return this.serveFrom(this.opts.appAssetsRoot, rel, res, false, '')
     }
 
-    if (req.method === 'GET' && (url.pathname.startsWith('/lessons/') || url.pathname.startsWith('/assets/'))) {
+    if (
+      req.method === 'GET' &&
+      (url.pathname.startsWith('/lessons/') ||
+        url.pathname.startsWith('/reference/') ||
+        url.pathname.startsWith('/assets/'))
+    ) {
       const rel = decodeURIComponent(url.pathname.replace(/^\/+/, ''))
       const lessonId = lessonIdFromPath(url.pathname)
       return this.serveFrom(this.opts.workspaceRoot, rel, res, true, lessonId)

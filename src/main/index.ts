@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { spawn, execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { existsSync, promises as fsp } from 'node:fs'
@@ -60,6 +60,7 @@ interface Session {
   saveSession(messages: ChatMessage[]): void
   setModel(model: string): void
   listLessons(): Promise<string[]>
+  listReferences(): Promise<string[]>
   gitCommit(message: string): Promise<GitResult>
   stop(): void
 }
@@ -161,6 +162,7 @@ async function createSession(workspaceRoot: string): Promise<Session> {
       harness = makeHarness()
     },
     listLessons: async () => (await wfs.list('lessons')).filter((n) => n.endsWith('.html')).sort(),
+    listReferences: async () => (await wfs.list('reference')).filter((n) => n.endsWith('.html')).sort(),
     gitCommit: async (message) => {
       try {
         await runGit(['add', '-A'], workspaceRoot)
@@ -280,6 +282,10 @@ function registerIpc(): void {
   ipcMain.on(IPC.saveSession, (_e, messages: ChatMessage[]) => session?.saveSession(messages))
   ipcMain.on(IPC.setModel, (_e, model: string) => session?.setModel(model))
   ipcMain.handle(IPC.listLessons, () => session?.listLessons() ?? Promise.resolve([]))
+  ipcMain.handle(IPC.listReferences, () => session?.listReferences() ?? Promise.resolve([]))
+  ipcMain.on(IPC.openExternal, (_e, url: string) => {
+    if (/^https?:\/\//i.test(url) || /^mailto:/i.test(url)) void shell.openExternal(url)
+  })
   ipcMain.handle(IPC.getConfig, () => session?.getConfig() ?? null)
 }
 

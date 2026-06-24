@@ -18,6 +18,8 @@ const api: TeachApi = {
     return () => ipcRenderer.removeListener(IPC.chatError, listener)
   },
   listLessons: () => ipcRenderer.invoke(IPC.listLessons) as Promise<string[]>,
+  listReferences: () => ipcRenderer.invoke(IPC.listReferences) as Promise<string[]>,
+  openExternal: (url: string) => ipcRenderer.send(IPC.openExternal, url),
   getConfig: () => ipcRenderer.invoke(IPC.getConfig) as Promise<AppConfig>,
   lessonUrl: (base, lessonId) => `${base}/lessons/${lessonId}.html`,
   getLauncher: () => ipcRenderer.invoke(IPC.getLauncher) as Promise<LauncherState>,

@@ -9,6 +9,8 @@ export const IPC = {
   chatEvent: 'teach:chatEvent',
   chatError: 'teach:chatError',
   listLessons: 'teach:listLessons',
+  listReferences: 'teach:listReferences',
+  openExternal: 'teach:openExternal',
   getConfig: 'teach:getConfig',
   getLauncher: 'teach:getLauncher',
   openFolder: 'teach:openFolder',
@@ -71,6 +73,9 @@ export interface TeachApi {
   onChatEvent(cb: (e: ChatEvent) => void): () => void
   onChatError(cb: (e: ClaudeError) => void): () => void
   listLessons(): Promise<string[]>
+  listReferences(): Promise<string[]>
+  /** Open a URL in the system browser. */
+  openExternal(url: string): void
   getConfig(): Promise<AppConfig>
   /** Build the URL to load a lesson by file stem, served by the lesson server. */
   lessonUrl(base: string, lessonId: string): string

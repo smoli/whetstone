@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch, toRaw } from 'vue'
+import { onMounted, ref, watch, toRaw } from 'vue'
+import Sidebar from './components/Sidebar.vue'
 import LessonPane from './components/LessonPane.vue'
 import ChatPane from './components/ChatPane.vue'
 import Welcome from './components/Welcome.vue'
@@ -10,12 +11,19 @@ const chat = useChatStore()
 const ws = useWorkspaceStore()
 
 // Resizable chat sidebar (persisted).
-const chatWidth = ref(loadWidth())
+const chatWidth = ref(loadNum('teach.chatWidth', 420, 320, 900))
 const dragging = ref(false)
+// Collapsible left sidebar (persisted).
+const sidebarCollapsed = ref(localStorage.getItem('teach.sidebarCollapsed') === '1')
 
-function loadWidth(): number {
-  const v = Number(localStorage.getItem('teach.chatWidth'))
-  return v >= 320 && v <= 900 ? v : 420
+function loadNum(key: string, dflt: number, min: number, max: number): number {
+  const v = Number(localStorage.getItem(key))
+  return v >= min && v <= max ? v : dflt
+}
+
+function toggleSidebar(): void {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+  localStorage.setItem('teach.sidebarCollapsed', sidebarCollapsed.value ? '1' : '0')
 }
 
 function startDrag(): void {
@@ -44,12 +52,9 @@ function enterWorkspace(): void {
 }
 
 onMounted(async () => {
-  // Chat listeners persist across workspace switches.
   window.teach.onChatEvent((e) => chat.applyEvent(e))
   window.teach.onChatError((e) => chat.applyError(e))
 
-  // Enter a workspace whenever one becomes active — robust to the Welcome
-  // component unmounting at the same moment (an emit would be lost to that race).
   watch(
     () => ws.active,
     (now, prev) => {
@@ -58,19 +63,16 @@ onMounted(async () => {
   )
   await ws.loadLauncher()
 
-  // Persist the transcript whenever the agent goes idle (for resume).
+  // On each idle: persist the transcript and refresh content lists so lessons or
+  // references the agent just created appear in the sidebar.
   watch(
     () => chat.busy,
     (b) => {
-      if (!b && ws.active && chat.messages.length) {
-        window.teach.saveSession(JSON.parse(JSON.stringify(toRaw(chat.messages))))
-      }
+      if (b || !ws.active) return
+      if (chat.messages.length) window.teach.saveSession(JSON.parse(JSON.stringify(toRaw(chat.messages))))
+      void ws.refreshContents()
     },
   )
-})
-
-onUnmounted(() => {
-  /* listeners live for the app lifetime */
 })
 </script>
 
@@ -80,7 +82,12 @@ onUnmounted(() => {
     v-else
     class="app"
   >
-    <LessonPane class="pane pane--lesson" />
+    <Sidebar
+      :collapsed="sidebarCollapsed"
+      @toggle="toggleSidebar"
+      @sessions="ws.toLauncher()"
+    />
+    <LessonPane class="pane pane--content" />
     <div
       class="splitter"
       :class="{ dragging }"
@@ -128,7 +135,7 @@ body {
   min-width: 0;
   min-height: 0;
 }
-.pane--lesson {
+.pane--content {
   flex: 1;
 }
 .pane--chat {
