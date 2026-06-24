@@ -47,8 +47,16 @@ onMounted(async () => {
   // Chat listeners persist across workspace switches.
   window.teach.onChatEvent((e) => chat.applyEvent(e))
   window.teach.onChatError((e) => chat.applyError(e))
+
+  // Enter a workspace whenever one becomes active — robust to the Welcome
+  // component unmounting at the same moment (an emit would be lost to that race).
+  watch(
+    () => ws.active,
+    (now, prev) => {
+      if (now && !prev) enterWorkspace()
+    },
+  )
   await ws.loadLauncher()
-  if (ws.active) enterWorkspace()
 
   // Persist the transcript whenever the agent goes idle (for resume).
   watch(
@@ -67,10 +75,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <Welcome
-    v-if="!ws.active"
-    @entered="enterWorkspace"
-  />
+  <Welcome v-if="!ws.active" />
   <main
     v-else
     class="app"
