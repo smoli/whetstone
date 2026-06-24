@@ -10,6 +10,9 @@ read — you can *do* them, and the teacher responds inside the lesson itself.
 
 ## What it is
 
+Built on the **`teach`** skill by AI Hero —
+<https://www.aihero.dev/learn-anything-with-my-teach-skill>.
+
 A teaching session is a folder on disk (the "workspace") containing a `MISSION.md`,
 lessons, reference docs, learning records, and notes. Whetstone gives that
 workspace a home with three panes:
