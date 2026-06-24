@@ -71,11 +71,13 @@ export interface ScaffoldDeps {
   readFile(absPath: string): Promise<string>
   writeFile(absPath: string, content: string): Promise<void>
   mkdir(absPath: string): Promise<void>
+  /** Recursively copy a directory (e.g. the bundled skill). */
+  copyDir(src: string, dest: string): Promise<void>
 }
 
 export interface ScaffoldOptions {
-  /** A teach-base checkout, used to read the canonical skill from origin/main. */
-  repoRoot: string
+  /** Absolute path to the bundled skill dir (…/.claude/skills/teach) to copy in. */
+  skillSource: string
   /** Directory containing the bundled template assets (lesson.css, quiz.js). */
   assetsSource: string
   /** Where to create the new session. */
@@ -84,11 +86,16 @@ export interface ScaffoldOptions {
 }
 
 /**
- * Create a self-contained teaching session: starter docs + bundled assets + the
- * teach skill from origin/main, then `git init` and an initial commit.
+ * Create a self-contained teaching session: starter docs + bundled assets + a
+ * copy of the app's teach skill, then `git init` and an initial commit.
+ *
+ * Everything is sourced from the app's own bundled files (no git / network), so
+ * this works offline and when the app is packaged and handed to someone else.
+ * Skill copy and git init are best-effort — a missing skill degrades to the
+ * app's --add-dir lending, and a missing git just leaves an un-versioned folder.
  */
 export async function scaffoldSession(opts: ScaffoldOptions, deps: ScaffoldDeps): Promise<void> {
-  const { targetDir, assetsSource, topic } = opts
+  const { targetDir, assetsSource, skillSource, topic } = opts
   const plan = buildScaffoldPlan(topic)
 
   await deps.mkdir(targetDir)
@@ -105,31 +112,23 @@ export async function scaffoldSession(opts: ScaffoldOptions, deps: ScaffoldDeps)
     }
   }
 
-  await copySkillFromMain(opts, deps)
+  // Copy the skill so the session is self-contained (best-effort).
+  try {
+    await deps.copyDir(skillSource, path.join(targetDir, SKILL_SUBTREE))
+  } catch {
+    /* no bundled skill — the app lends its own via --add-dir at open time */
+  }
+
   await gitInitAndCommit(targetDir, topic, deps)
 }
 
-/** Copy `.claude/skills/teach` from origin/main into the new session. */
-async function copySkillFromMain(opts: ScaffoldOptions, deps: ScaffoldDeps): Promise<void> {
-  const { repoRoot, targetDir } = opts
-  // Best-effort refresh; the cached ref is used if offline / unauthenticated.
-  try {
-    await deps.exec('git', ['fetch', 'origin', 'main'], repoRoot)
-  } catch {
-    /* offline or no creds — fall back to the cached origin/main ref */
-  }
-  const listing = await deps.exec('git', ['ls-tree', '-r', '--name-only', 'origin/main', SKILL_SUBTREE], repoRoot)
-  const files = listing.split('\n').map((l) => l.trim()).filter(Boolean)
-  for (const rel of files) {
-    const content = await deps.exec('git', ['show', `origin/main:${rel}`], repoRoot)
-    await deps.mkdir(path.join(targetDir, path.dirname(rel)))
-    await deps.writeFile(path.join(targetDir, rel), content)
-  }
-}
-
 async function gitInitAndCommit(targetDir: string, topic: string | undefined, deps: ScaffoldDeps): Promise<void> {
-  await deps.exec('git', ['init'], targetDir)
-  await deps.exec('git', ['add', '-A'], targetDir)
-  const msg = topic?.trim() ? `Start teaching session: ${topic.trim()}` : 'Start teaching session'
-  await deps.exec('git', ['commit', '-m', msg], targetDir)
+  try {
+    await deps.exec('git', ['init'], targetDir)
+    await deps.exec('git', ['add', '-A'], targetDir)
+    const msg = topic?.trim() ? `Start teaching session: ${topic.trim()}` : 'Start teaching session'
+    await deps.exec('git', ['commit', '-m', msg], targetDir)
+  } catch {
+    /* git missing / unconfigured — folder is still usable, just not a repo */
+  }
 }

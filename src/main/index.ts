@@ -22,7 +22,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const SESSION_FILE = '.teach-desktop.json'
 const repoRoot = path.resolve(__dirname, '../..')
 const appAssetsRoot = path.join(repoRoot, 'assets')
-const templateAssets = path.join(repoRoot, 'ExampleLesson', 'assets')
+// Bundled template sources for new sessions (no git/network — works packaged).
+const templateAssets = appAssetsRoot
+const skillSource = path.join(repoRoot, '.claude', 'skills', 'teach')
 const pexec = promisify(execFile)
 
 let mainWindow: BrowserWindow | null = null
@@ -275,8 +277,9 @@ function registerIpc(): void {
         await fsp.writeFile(p, content, 'utf8')
       },
       mkdir: (p) => fsp.mkdir(p, { recursive: true }).then(() => undefined),
+      copyDir: (src, dest) => fsp.cp(src, dest, { recursive: true }),
     }
-    await scaffoldSession({ repoRoot, assetsSource: templateAssets, targetDir, topic }, deps)
+    await scaffoldSession({ skillSource, assetsSource: templateAssets, targetDir, topic }, deps)
     return openWorkspace(targetDir)
   })
 

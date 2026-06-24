@@ -46,17 +46,14 @@ describe('scaffoldSession', () => {
     const writes = new Map<string, string>()
     const mkdirs: string[] = []
     const execs: { file: string; args: string[]; cwd: string }[] = []
+    const copies: { src: string; dest: string }[] = []
     const assets: Record<string, string> = {
-      '/repo/ExampleLesson/assets/lesson.css': '/* css */',
-      '/repo/ExampleLesson/assets/quiz.js': '// quiz',
+      '/app/assets/lesson.css': '/* css */',
+      '/app/assets/quiz.js': '// quiz',
     }
     const deps: ScaffoldDeps = {
       async exec(file, args, cwd) {
         execs.push({ file, args, cwd })
-        if (args[0] === 'ls-tree') {
-          return '.claude/skills/teach/SKILL.md\n.claude/skills/teach/MISSION-FORMAT.md\n'
-        }
-        if (args[0] === 'show') return `content of ${args[1]}`
         return ''
       },
       async readFile(p) {
@@ -69,44 +66,52 @@ describe('scaffoldSession', () => {
       async mkdir(p) {
         mkdirs.push(p)
       },
+      async copyDir(src, dest) {
+        copies.push({ src, dest })
+      },
     }
-    return { deps, writes, mkdirs, execs }
+    return { deps, writes, mkdirs, execs, copies }
   }
 
   const opts = {
-    repoRoot: '/repo',
-    assetsSource: '/repo/ExampleLesson/assets',
+    skillSource: '/app/.claude/skills/teach',
+    assetsSource: '/app/assets',
     targetDir: '/new/course',
     topic: 'chess endgames',
   }
 
-  it('creates dirs, starter docs, copies assets, extracts the skill, and inits git', async () => {
-    const { deps, writes, execs } = fakeDeps()
+  it('creates dirs, starter docs, copies assets, copies the bundled skill, and inits git', async () => {
+    const { deps, writes, execs, copies } = fakeDeps()
     await scaffoldSession(opts, deps)
 
-    // starter docs + assets + skill files written
     expect(writes.get('/new/course/MISSION.md')).toContain('chess endgames')
     expect(writes.get('/new/course/assets/lesson.css')).toBe('/* css */')
     expect(writes.get('/new/course/assets/quiz.js')).toBe('// quiz')
-    expect(writes.get('/new/course/.claude/skills/teach/SKILL.md')).toBe('content of origin/main:.claude/skills/teach/SKILL.md')
 
-    // git operations: ls-tree + show against origin/main in repoRoot, init/add/commit in targetDir
+    // skill copied from the bundled dir into the session, no git fetch/ls-tree
+    expect(copies).toContainEqual({ src: '/app/.claude/skills/teach', dest: '/new/course/.claude/skills/teach' })
+    expect(execs.some((e) => e.args[0] === 'fetch' || e.args[0] === 'ls-tree')).toBe(false)
+
     const cmds = execs.map((e) => `${e.args[0]}@${e.cwd}`)
-    expect(cmds).toContain('ls-tree@/repo')
     expect(cmds).toContain('init@/new/course')
-    expect(cmds).toContain('add@/new/course')
-    const commit = execs.find((e) => e.args[0] === 'commit')!
-    expect(commit.args.join(' ')).toContain('chess endgames')
+    expect(execs.find((e) => e.args[0] === 'commit')!.args.join(' ')).toContain('chess endgames')
   })
 
-  it('survives a failed git fetch (offline) and still extracts from the cached ref', async () => {
+  it('still creates the folder when git is unavailable (best-effort init)', async () => {
     const { deps, writes } = fakeDeps()
-    const realExec = deps.exec
-    deps.exec = async (file, args, cwd) => {
-      if (args[0] === 'fetch') throw new Error('could not read Username')
-      return realExec(file, args, cwd)
+    deps.exec = async () => {
+      throw new Error('git: command not found')
     }
     await scaffoldSession(opts, deps)
-    expect(writes.get('/new/course/.claude/skills/teach/SKILL.md')).toBeTruthy()
+    expect(writes.get('/new/course/MISSION.md')).toBeTruthy()
+  })
+
+  it('still creates the folder when the bundled skill is missing (degrades to --add-dir)', async () => {
+    const { deps, writes } = fakeDeps()
+    deps.copyDir = async () => {
+      throw new Error('ENOENT skill')
+    }
+    await scaffoldSession(opts, deps)
+    expect(writes.get('/new/course/MISSION.md')).toBeTruthy()
   })
 })
