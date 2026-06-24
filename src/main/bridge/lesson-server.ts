@@ -189,7 +189,7 @@ export class LessonServer {
     const rel = decodeURIComponent(name)
     const abs = path.resolve(this.opts.workspaceRoot, rel)
     const rootWithSep = path.resolve(this.opts.workspaceRoot) + path.sep
-    if (!abs.startsWith(rootWithSep) || !abs.endsWith('.md')) {
+    if (!abs.startsWith(rootWithSep) || !/\.md$/i.test(abs)) {
       return json(res, 403, { ok: false, error: 'forbidden' })
     }
     let md: string

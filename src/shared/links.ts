@@ -14,6 +14,8 @@ export interface LinkContext {
   lessons: string[]
   /** Known reference filenames, e.g. "glossary.html". */
   references: string[]
+  /** Known workspace doc filenames, e.g. "MISSION.md". */
+  docs: string[]
 }
 
 export type ResolvedLink =
@@ -48,8 +50,16 @@ function classifyPath(p: string, ctx: LinkContext): ResolvedLink {
   const basename = segs[segs.length - 1] ?? ''
   if (!basename) return { kind: 'unknown' }
 
-  if (ctx.lessons.includes(basename)) return { kind: 'lesson', file: basename }
-  if (ctx.references.includes(basename)) return { kind: 'reference', file: basename }
+  // Match known files case-insensitively, returning the canonical filename so a
+  // mis-cased link (e.g. "MISSION.Md") resolves to the real file.
+  const ci = (list: string[]): string | undefined =>
+    list.find((f) => f.toLowerCase() === basename.toLowerCase())
+  const lesson = ci(ctx.lessons)
+  if (lesson) return { kind: 'lesson', file: lesson }
+  const reference = ci(ctx.references)
+  if (reference) return { kind: 'reference', file: reference }
+  const doc = ci(ctx.docs)
+  if (doc) return { kind: 'doc', file: doc }
   if (/^(MISSION|RESOURCES|NOTES)\.md$/i.test(basename)) return { kind: 'doc', file: basename }
 
   if (!/\.html?$/i.test(basename)) return { kind: 'unknown' }

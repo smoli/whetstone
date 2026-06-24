@@ -345,7 +345,6 @@ async function createWindow(): Promise<void> {
 }
 
 app.whenReady().then(async () => {
-  console.log('[whetstone] main started — routes incl. /doc/ (build marker A1)')
   await loadAppState()
   await createWindow()
 })

@@ -5,6 +5,7 @@ const ctx: LinkContext = {
   lessonBase: 'http://127.0.0.1:5000',
   lessons: ['0004-the-vertical-slice.html', '0006-running-the-test.html'],
   references: ['glossary.html', 'slice-01-the-lava-commute.html'],
+  docs: ['MISSION.md', 'RESOURCES.md', 'NOTES.md'],
 }
 
 describe('resolveChatLink', () => {
@@ -41,6 +42,14 @@ describe('resolveChatLink', () => {
   it('routes workspace docs (MISSION/RESOURCES/NOTES) to the doc section', () => {
     expect(resolveChatLink('../RESOURCES.md', ctx)).toEqual({ kind: 'doc', file: 'RESOURCES.md' })
     expect(resolveChatLink('MISSION.md', ctx)).toEqual({ kind: 'doc', file: 'MISSION.md' })
+  })
+
+  it('canonicalizes a mis-cased link to the real filename', () => {
+    expect(resolveChatLink('MISSION.Md', ctx)).toEqual({ kind: 'doc', file: 'MISSION.md' })
+    expect(resolveChatLink('0006-Running-The-Test.html', ctx)).toEqual({
+      kind: 'lesson',
+      file: '0006-running-the-test.html',
+    })
   })
 
   it('returns anchor for hash links and unknown for other non-html', () => {

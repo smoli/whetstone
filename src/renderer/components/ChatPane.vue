@@ -19,6 +19,7 @@ function onListClick(e: MouseEvent): void {
     lessonBase: ws.config?.lessonBase ?? '',
     lessons: ws.lessons,
     references: ws.references,
+    docs: ws.docs,
   })
   if (link.kind === 'lesson') ws.openItem('lessons', link.file)
   else if (link.kind === 'reference') ws.openItem('reference', link.file)
