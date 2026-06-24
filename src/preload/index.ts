@@ -21,6 +21,7 @@ const api: TeachApi = {
   listReferences: () => ipcRenderer.invoke(IPC.listReferences) as Promise<string[]>,
   listDocs: () => ipcRenderer.invoke(IPC.listDocs) as Promise<string[]>,
   openExternal: (url: string) => ipcRenderer.send(IPC.openExternal, url),
+  revealWorkspace: () => ipcRenderer.send(IPC.revealWorkspace),
   getConfig: () => ipcRenderer.invoke(IPC.getConfig) as Promise<AppConfig>,
   lessonUrl: (base, lessonId) => `${base}/lessons/${lessonId}.html`,
   getLauncher: () => ipcRenderer.invoke(IPC.getLauncher) as Promise<LauncherState>,

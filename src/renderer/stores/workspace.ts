@@ -141,9 +141,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return window.teach.gitCommit(message)
   }
 
+  function revealWorkspace(): void {
+    window.teach.revealWorkspace()
+  }
+
   return {
     active, recent, config, lessons, references, docs, current, currentUrl, canBack, canForward, model, models, session,
     loadLauncher, openFolder, openRecent, newSession, toLauncher, openItem, onNavigated, back, forward,
-    refreshContents, setModel, commit,
+    refreshContents, setModel, commit, revealWorkspace,
   }
 })

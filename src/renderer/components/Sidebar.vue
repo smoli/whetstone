@@ -32,6 +32,14 @@ function docLabel(file: string): string {
         v-if="!collapsed"
         class="ws-name"
       >{{ ws.config?.workspaceName ?? 'Workspace' }}</strong>
+      <button
+        v-if="!collapsed"
+        class="icon-btn reveal"
+        title="Reveal workspace in file manager"
+        @click="ws.revealWorkspace()"
+      >
+        📂
+      </button>
     </div>
 
     <!-- expanded: full lists -->
@@ -161,9 +169,14 @@ function docLabel(file: string): string {
 .ws-name {
   font-family: var(--serif);
   font-size: 1rem;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.reveal {
+  font-size: 0.9rem;
+  flex: 0 0 auto;
 }
 .side-body {
   flex: 1;

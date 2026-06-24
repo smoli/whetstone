@@ -12,6 +12,7 @@ export const IPC = {
   listReferences: 'teach:listReferences',
   listDocs: 'teach:listDocs',
   openExternal: 'teach:openExternal',
+  revealWorkspace: 'teach:revealWorkspace',
   getConfig: 'teach:getConfig',
   getLauncher: 'teach:getLauncher',
   openFolder: 'teach:openFolder',
@@ -79,6 +80,8 @@ export interface TeachApi {
   listDocs(): Promise<string[]>
   /** Open a URL in the system browser. */
   openExternal(url: string): void
+  /** Reveal the active workspace folder in the OS file manager. */
+  revealWorkspace(): void
   getConfig(): Promise<AppConfig>
   /** Build the URL to load a lesson by file stem, served by the lesson server. */
   lessonUrl(base: string, lessonId: string): string

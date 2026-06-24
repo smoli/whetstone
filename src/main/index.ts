@@ -305,6 +305,9 @@ function registerIpc(): void {
   ipcMain.on(IPC.openExternal, (_e, url: string) => {
     if (/^https?:\/\//i.test(url) || /^mailto:/i.test(url)) void shell.openExternal(url)
   })
+  ipcMain.on(IPC.revealWorkspace, () => {
+    if (session) void shell.openPath(session.workspaceRoot)
+  })
   ipcMain.handle(IPC.getConfig, () => session?.getConfig() ?? null)
 }
 
