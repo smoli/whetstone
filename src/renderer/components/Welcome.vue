@@ -29,6 +29,11 @@ async function run(fn: () => Promise<boolean>): Promise<void> {
 const openFolder = () => run(() => ws.openFolder())
 const openRecent = (p: string) => run(() => ws.openRecent(p))
 const create = () => run(() => ws.newSession(topic.value))
+
+const CREDIT_URL = 'https://www.aihero.dev/learn-anything-with-my-teach-skill'
+function openCredit(): void {
+  window.teach.openExternal(CREDIT_URL)
+}
 </script>
 
 <template>
@@ -95,6 +100,14 @@ const create = () => run(() => ws.newSession(topic.value))
         class="error"
       >
         {{ error }}
+      </p>
+
+      <p class="credit">
+        Built on the <em>teach</em> skill by AI Hero —
+        <a
+          href="https://www.aihero.dev/learn-anything-with-my-teach-skill"
+          @click.prevent="openCredit"
+        >learn-anything-with-my-teach-skill</a>
       </p>
     </div>
   </div>
@@ -210,5 +223,18 @@ button.primary {
   color: var(--bad);
   font-size: 0.85rem;
   margin-top: 1rem;
+}
+.credit {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+.credit a {
+  color: var(--link);
+  border-bottom: 1px solid var(--accent-soft);
+  cursor: pointer;
+  text-decoration: none;
 }
 </style>
