@@ -1,6 +1,7 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
-import { spawn } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { spawn, execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+import { existsSync, promises as fsp } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { BridgeCore } from './bridge/bridge-core'
@@ -9,42 +10,70 @@ import { NodeWorkspaceFs } from './bridge/workspace-fs'
 import { LessonServer } from './bridge/lesson-server'
 import { ClaudeHarness, wireBridgeToClaude, type ChildLike } from './claude/harness'
 import { MODELS, buildExtraArgs, parseSessionFile, shouldFallbackToFresh, type SessionFile } from './claude/session'
-import { startMcpHttp, type McpHttpHandle } from './mcp/mcp-http'
-import { IPC, type AppConfig } from '@shared/ipc'
+import { scaffoldSession, type ScaffoldDeps } from './workspace/scaffold'
+import { addRecent, removeRecent, parseAppState, type AppState } from './workspace/app-config'
+import { startMcpHttp } from './mcp/mcp-http'
+import { IPC, type AppConfig, type GitResult, type LauncherState } from '@shared/ipc'
 import type { ChatEvent, ChatMessage } from '@shared/chat'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const SESSION_FILE = '.teach-desktop.json'
+const repoRoot = path.resolve(__dirname, '../..')
+const appAssetsRoot = path.join(repoRoot, 'assets')
+const templateAssets = path.join(repoRoot, 'ExampleLesson', 'assets')
+const pexec = promisify(execFile)
 
-/** The active teaching workspace. Defaults to the bundled ExampleLesson. */
-function resolveWorkspace(): string {
-  const fromEnv = process.env.TEACH_WORKSPACE
-  if (fromEnv) return path.resolve(fromEnv)
-  return path.resolve(__dirname, '../../ExampleLesson')
+let mainWindow: BrowserWindow | null = null
+let session: Session | null = null
+let appState: AppState = { recent: [], lastWorkspace: null }
+let ipcReady = false
+
+async function runGit(args: string[], cwd: string): Promise<string> {
+  const { stdout } = await pexec('git', args, { cwd })
+  return stdout
 }
 
-interface Services {
-  lessonServer: LessonServer
-  mcp: McpHttpHandle
+// ── app-level persisted state (recents) ─────────────────────────────────────
+
+function appStatePath(): string {
+  return path.join(app.getPath('userData'), 'teach-desktop.json')
+}
+async function loadAppState(): Promise<void> {
+  try {
+    appState = parseAppState(await fsp.readFile(appStatePath(), 'utf8'))
+  } catch {
+    appState = { recent: [], lastWorkspace: null }
+  }
+}
+async function saveAppState(): Promise<void> {
+  await fsp.writeFile(appStatePath(), JSON.stringify(appState, null, 2), 'utf8')
+}
+
+// ── per-workspace session ───────────────────────────────────────────────────
+
+interface Session {
+  workspaceRoot: string
+  getConfig(): AppConfig
+  sendChat(text: string): void
+  startSession(): void
+  saveSession(messages: ChatMessage[]): void
+  setModel(model: string): void
+  listLessons(): Promise<string[]>
+  gitCommit(message: string): Promise<GitResult>
   stop(): void
 }
 
-async function startServices(window: BrowserWindow): Promise<Services> {
-  const workspaceRoot = resolveWorkspace()
-  const appAssetsRoot = path.resolve(__dirname, '../../assets')
+async function createSession(workspaceRoot: string): Promise<Session> {
   const wfs = new NodeWorkspaceFs(workspaceRoot)
-
   const bridge = new Bridge(new BridgeCore(wfs))
   const lessonServer = new LessonServer({ bridge, workspaceRoot, appAssetsRoot, port: 0 })
   await lessonServer.listen()
   const mcp = await startMcpHttp(bridge)
 
-  // Skill discovery: --add-dir loads .claude/skills/ from the app's skill home
-  // regardless of the workspace cwd.
-  const skillHome = path.resolve(__dirname, '../..')
-  const hasSkill = existsSync(path.join(skillHome, '.claude', 'skills', 'teach', 'SKILL.md'))
+  // Use the workspace's own skill if present; otherwise lend the app's via --add-dir.
+  const ownsSkill = existsSync(path.join(workspaceRoot, '.claude', 'skills', 'teach', 'SKILL.md'))
+  const skillHome = existsSync(path.join(repoRoot, '.claude', 'skills', 'teach', 'SKILL.md')) ? repoRoot : null
 
-  // Restore prior session (if any) so we can resume instead of re-running /teach.
   const persisted = parseSessionFile(await wfs.read(SESSION_FILE))
   const resumedAtLaunch = !!persisted?.sessionId
   const state: SessionFile = {
@@ -61,7 +90,7 @@ async function startServices(window: BrowserWindow): Promise<Services> {
 
   let harness: ClaudeHarness
   let fellBack = false
-  let sessionStarted = resumedAtLaunch // resumed sessions need no /teach
+  let sessionStarted = resumedAtLaunch
   function makeHarness(): ClaudeHarness {
     const launchedWithResume = !!state.sessionId
     let gotInit = false
@@ -72,11 +101,9 @@ async function startServices(window: BrowserWindow): Promise<Services> {
         mcpConfigPath: mcp.configPath,
         model: state.model,
         resumeId: state.sessionId,
-        skillHome: hasSkill ? skillHome : null,
+        skillHome: ownsSkill ? null : skillHome,
       }),
     })
-    // A stale/expired session id makes --resume fail before any init. Detect that
-    // (no init seen) and self-heal: clear the id, restart fresh, re-run /teach.
     const fallbackIfNeeded = (): void => {
       if (!shouldFallbackToFresh({ launchedWithResume, gotInit, alreadyFellBack: fellBack })) return
       fellBack = true
@@ -92,10 +119,10 @@ async function startServices(window: BrowserWindow): Promise<Services> {
         state.sessionId = e.sessionId
         void persist()
       }
-      window.webContents.send(IPC.chatEvent, e)
+      mainWindow?.webContents.send(IPC.chatEvent, e)
     })
     h.onError((e) => {
-      window.webContents.send(IPC.chatError, e)
+      mainWindow?.webContents.send(IPC.chatError, e)
       fallbackIfNeeded()
     })
     h.onClose(() => fallbackIfNeeded())
@@ -103,35 +130,11 @@ async function startServices(window: BrowserWindow): Promise<Services> {
     return h
   }
   harness = makeHarness()
-  // Wire bridge prompts to whichever harness is current (survives model switches).
   wireBridgeToClaude(bridge, { send: (p) => harness.send(p) })
 
-  ipcMain.on(IPC.startSession, () => {
-    if (sessionStarted) return
-    sessionStarted = true
-    harness.send('/teach')
-  })
-  ipcMain.on(IPC.sendChat, (_e, text: string) => harness.send(text))
-  ipcMain.on(IPC.saveSession, (_e, messages: ChatMessage[]) => {
-    state.messages = messages
-    void persist()
-  })
-  ipcMain.on(IPC.setModel, (_e, model: string) => {
-    if (model === state.model) return
-    state.model = model
-    void persist()
-    // Restart the agent on the same (resumed) session so context is preserved.
-    harness.stop()
-    harness = makeHarness()
-  })
-
-  ipcMain.handle(IPC.listLessons, async () => {
-    const names = await wfs.list('lessons')
-    return names.filter((n) => n.endsWith('.html')).sort()
-  })
-  ipcMain.handle(
-    IPC.getConfig,
-    (): AppConfig => ({
+  return {
+    workspaceRoot,
+    getConfig: () => ({
       lessonBase: lessonServer.httpBase(),
       workspaceName: path.basename(workspaceRoot),
       model: state.model,
@@ -139,11 +142,35 @@ async function startServices(window: BrowserWindow): Promise<Services> {
       resumed: resumedAtLaunch,
       messages: state.messages,
     }),
-  )
-
-  return {
-    lessonServer,
-    mcp,
+    sendChat: (text) => harness.send(text),
+    startSession: () => {
+      if (sessionStarted) return
+      sessionStarted = true
+      harness.send('/teach')
+    },
+    saveSession: (messages) => {
+      state.messages = messages
+      void persist()
+    },
+    setModel: (model) => {
+      if (model === state.model) return
+      state.model = model
+      void persist()
+      harness.stop()
+      harness = makeHarness()
+    },
+    listLessons: async () => (await wfs.list('lessons')).filter((n) => n.endsWith('.html')).sort(),
+    gitCommit: async (message) => {
+      try {
+        await runGit(['add', '-A'], workspaceRoot)
+        await runGit(['commit', '-m', message.trim() || 'Update teaching session'], workspaceRoot)
+        return { ok: true, message: 'Committed.' }
+      } catch (err) {
+        const out = (err as { stdout?: string; stderr?: string }).stdout ?? ''
+        if (/nothing to commit/i.test(out)) return { ok: false, message: 'Nothing to commit.' }
+        return { ok: false, message: 'Commit failed (is git configured?).' }
+      }
+    },
     stop: () => {
       harness.stop()
       void lessonServer.close()
@@ -152,8 +179,82 @@ async function startServices(window: BrowserWindow): Promise<Services> {
   }
 }
 
+async function openWorkspace(workspaceRoot: string): Promise<AppConfig> {
+  session?.stop()
+  session = await createSession(workspaceRoot)
+  appState.recent = addRecent(appState.recent, workspaceRoot)
+  appState.lastWorkspace = workspaceRoot
+  await saveAppState()
+  return session.getConfig()
+}
+
+function slug(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'teaching-session'
+}
+
+// ── IPC (registered once) ───────────────────────────────────────────────────
+
+function registerIpc(): void {
+  if (ipcReady) return
+  ipcReady = true
+
+  ipcMain.handle(IPC.getLauncher, (): LauncherState => {
+    const recent = appState.recent.filter((p) => existsSync(p)).map((p) => ({ path: p, name: path.basename(p) }))
+    return { recent, hasWorkspace: !!session }
+  })
+
+  ipcMain.handle(IPC.openFolder, async (): Promise<AppConfig | null> => {
+    if (!mainWindow) return null
+    const res = await dialog.showOpenDialog(mainWindow, { properties: ['openDirectory'] })
+    if (res.canceled || !res.filePaths[0]) return null
+    return openWorkspace(res.filePaths[0])
+  })
+
+  ipcMain.handle(IPC.openRecent, async (_e, p: string): Promise<AppConfig | null> => {
+    if (!existsSync(p)) {
+      appState.recent = removeRecent(appState.recent, p)
+      await saveAppState()
+      return null
+    }
+    return openWorkspace(p)
+  })
+
+  ipcMain.handle(IPC.newSession, async (_e, topic: string): Promise<AppConfig | null> => {
+    if (!mainWindow) return null
+    const res = await dialog.showSaveDialog(mainWindow, {
+      title: 'Create teaching session',
+      defaultPath: path.join(app.getPath('documents'), slug(topic)),
+      buttonLabel: 'Create',
+    })
+    if (res.canceled || !res.filePath) return null
+    const deps: ScaffoldDeps = {
+      exec: (file, args, cwd) => pexec(file, args, { cwd }).then((r) => r.stdout),
+      readFile: (p) => fsp.readFile(p, 'utf8'),
+      writeFile: async (p, content) => {
+        await fsp.mkdir(path.dirname(p), { recursive: true })
+        await fsp.writeFile(p, content, 'utf8')
+      },
+      mkdir: (p) => fsp.mkdir(p, { recursive: true }).then(() => undefined),
+    }
+    await scaffoldSession({ repoRoot, assetsSource: templateAssets, targetDir: res.filePath, topic }, deps)
+    return openWorkspace(res.filePath)
+  })
+
+  ipcMain.handle(IPC.gitCommit, (_e, message: string): Promise<GitResult> => {
+    if (!session) return Promise.resolve({ ok: false, message: 'No workspace open.' })
+    return session.gitCommit(message)
+  })
+
+  ipcMain.on(IPC.startSession, () => session?.startSession())
+  ipcMain.on(IPC.sendChat, (_e, text: string) => session?.sendChat(text))
+  ipcMain.on(IPC.saveSession, (_e, messages: ChatMessage[]) => session?.saveSession(messages))
+  ipcMain.on(IPC.setModel, (_e, model: string) => session?.setModel(model))
+  ipcMain.handle(IPC.listLessons, () => session?.listLessons() ?? Promise.resolve([]))
+  ipcMain.handle(IPC.getConfig, () => session?.getConfig() ?? null)
+}
+
 async function createWindow(): Promise<void> {
-  const window = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     webPreferences: {
@@ -162,18 +263,21 @@ async function createWindow(): Promise<void> {
       sandbox: false,
     },
   })
-
-  const services = await startServices(window)
-  app.on('before-quit', () => services.stop())
+  registerIpc()
 
   if (process.env.ELECTRON_RENDERER_URL) {
-    await window.loadURL(process.env.ELECTRON_RENDERER_URL)
+    await mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
-    await window.loadFile(path.join(__dirname, '../renderer/index.html'))
+    await mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(async () => {
+  await loadAppState()
+  await createWindow()
+})
+
+app.on('before-quit', () => session?.stop())
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

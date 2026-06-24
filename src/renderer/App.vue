@@ -2,13 +2,12 @@
 import { onMounted, onUnmounted, ref, watch, toRaw } from 'vue'
 import LessonPane from './components/LessonPane.vue'
 import ChatPane from './components/ChatPane.vue'
+import Welcome from './components/Welcome.vue'
 import { useChatStore } from './stores/chat'
 import { useWorkspaceStore } from './stores/workspace'
 
 const chat = useChatStore()
 const ws = useWorkspaceStore()
-let offEvent: (() => void) | null = null
-let offError: (() => void) | null = null
 
 // Resizable chat sidebar (persisted).
 const chatWidth = ref(loadWidth())
@@ -34,25 +33,28 @@ function startDrag(): void {
   window.addEventListener('pointerup', up)
 }
 
-onMounted(async () => {
-  offEvent = window.teach.onChatEvent((e) => chat.applyEvent(e))
-  offError = window.teach.onChatError((e) => chat.applyError(e))
-  await ws.load()
-  // Restore a prior transcript if we resumed a session; otherwise bootstrap.
+/** Run after a workspace becomes active (fresh open or restored). */
+function enterWorkspace(): void {
+  chat.reset()
   if (ws.session.messages.length) chat.load(ws.session.messages)
-  if (ws.session.resumed) {
-    // Resumed: agent context is already restored, no /teach needed.
-  } else {
+  if (!ws.session.resumed) {
     chat.markBusy()
     window.teach.startSession()
   }
+}
 
-  // Persist the transcript whenever the agent goes idle, so the next launch can
-  // resume it (the agent side resumes via --resume; this restores the UI).
+onMounted(async () => {
+  // Chat listeners persist across workspace switches.
+  window.teach.onChatEvent((e) => chat.applyEvent(e))
+  window.teach.onChatError((e) => chat.applyError(e))
+  await ws.loadLauncher()
+  if (ws.active) enterWorkspace()
+
+  // Persist the transcript whenever the agent goes idle (for resume).
   watch(
     () => chat.busy,
     (b) => {
-      if (!b && chat.messages.length) {
+      if (!b && ws.active && chat.messages.length) {
         window.teach.saveSession(JSON.parse(JSON.stringify(toRaw(chat.messages))))
       }
     },
@@ -60,13 +62,19 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  offEvent?.()
-  offError?.()
+  /* listeners live for the app lifetime */
 })
 </script>
 
 <template>
-  <main class="app">
+  <Welcome
+    v-if="!ws.active"
+    @entered="enterWorkspace"
+  />
+  <main
+    v-else
+    class="app"
+  >
     <LessonPane class="pane pane--lesson" />
     <div
       class="splitter"

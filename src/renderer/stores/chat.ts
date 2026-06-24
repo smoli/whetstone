@@ -51,5 +51,13 @@ export const useChatStore = defineStore('chat', () => {
     counter = saved.length
   }
 
-  return { messages, error, busy, startedAt, applyEvent, applyError, send, load, markBusy }
+  /** Clear all state (on workspace switch). */
+  function reset(): void {
+    messages.value = []
+    error.value = null
+    clearBusy()
+    counter = 0
+  }
+
+  return { messages, error, busy, startedAt, applyEvent, applyError, send, load, reset, markBusy }
 })

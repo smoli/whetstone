@@ -80,7 +80,7 @@ export interface ScaffoldOptions {
  * teach skill from origin/main, then `git init` and an initial commit.
  */
 export async function scaffoldSession(opts: ScaffoldOptions, deps: ScaffoldDeps): Promise<void> {
-  const { targetDir, repoRoot, assetsSource, topic } = opts
+  const { targetDir, assetsSource, topic } = opts
   const plan = buildScaffoldPlan(topic)
 
   await deps.mkdir(targetDir)

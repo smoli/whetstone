@@ -10,6 +10,11 @@ export const IPC = {
   chatError: 'teach:chatError',
   listLessons: 'teach:listLessons',
   getConfig: 'teach:getConfig',
+  getLauncher: 'teach:getLauncher',
+  openFolder: 'teach:openFolder',
+  openRecent: 'teach:openRecent',
+  newSession: 'teach:newSession',
+  gitCommit: 'teach:gitCommit',
 } as const
 
 export interface ModelOption {
@@ -33,6 +38,23 @@ export interface AppConfig {
   messages: ChatMessage[]
 }
 
+export interface RecentWorkspace {
+  path: string
+  name: string
+}
+
+export interface LauncherState {
+  recent: RecentWorkspace[]
+  /** True if a workspace is already open (e.g. restored on launch). */
+  hasWorkspace: boolean
+}
+
+export interface GitResult {
+  ok: boolean
+  /** User-readable outcome or error. */
+  message: string
+}
+
 /** The typed surface the preload exposes to the renderer as `window.teach`. */
 export interface TeachApi {
   sendChat(text: string): void
@@ -48,6 +70,17 @@ export interface TeachApi {
   getConfig(): Promise<AppConfig>
   /** Build the URL to load a lesson by file stem, served by the lesson server. */
   lessonUrl(base: string, lessonId: string): string
+  // ── workspace lifecycle ──
+  /** Launcher state for the welcome screen. */
+  getLauncher(): Promise<LauncherState>
+  /** Pick a folder and open it as the active workspace. Null if cancelled. */
+  openFolder(): Promise<AppConfig | null>
+  /** Open a known workspace by path. Null if it no longer exists. */
+  openRecent(path: string): Promise<AppConfig | null>
+  /** Scaffold a new self-contained session (prompts for location), then open it. */
+  newSession(topic: string): Promise<AppConfig | null>
+  /** Stage all and commit the active workspace. */
+  gitCommit(message: string): Promise<GitResult>
 }
 
 declare global {
