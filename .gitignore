@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+out/
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+
+# Local teaching workspaces (user data — never committed)
+workspaces/
+*.local-workspace/
+
+# Spaced-repetition / runtime state written into workspaces
+reviews.json
+
+# Secrets — never commit keys or env
+.env
+.env.*
+!.env.example
+
+# Editor / OS cruft
+.idea/
+.vscode/
+.DS_Store
+*.log
