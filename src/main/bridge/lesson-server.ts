@@ -19,6 +19,10 @@ export interface LessonServerOptions {
   bridge: Bridge
   /** Absolute path to the active teaching workspace (serves lessons/ and assets/). */
   workspaceRoot: string
+  /** Absolute path to the app's shipped assets (serves /teach-assets/, incl. bridge.js). */
+  appAssetsRoot?: string
+  /** Auto-inject the bridge config + bridge.js into served lesson HTML. Default true. */
+  injectBridge?: boolean
   /** Port to bind; 0 picks a free ephemeral port (tests). */
   port?: number
   host?: string
@@ -26,24 +30,27 @@ export interface LessonServerOptions {
 
 /**
  * Thin HTTP + WebSocket server wrapping the Bridge:
- *   GET  /healthz        liveness
- *   POST /events         a LessonEvent → bridge.ingestEvent
- *   GET  /lessons/*      static lesson HTML from the workspace
- *   GET  /assets/*       static shared assets from the workspace
- *   WS   /ws             a lesson client; receives AgentCommand broadcasts
+ *   GET  /healthz          liveness
+ *   POST /events           a LessonEvent → bridge.ingestEvent
+ *   GET  /lessons/*        static lesson HTML (bridge auto-injected)
+ *   GET  /assets/*         static shared assets from the workspace
+ *   GET  /teach-assets/*   the app's shipped assets (bridge.js)
+ *   WS   /ws               a lesson client; receives AgentCommand broadcasts
  */
 export class LessonServer {
   private readonly server: http.Server
   private readonly wss: WebSocketServer
   private readonly opts: LessonServerOptions
+  private host = '127.0.0.1'
+  private port = 0
 
   constructor(opts: LessonServerOptions) {
     this.opts = opts
+    this.host = opts.host ?? '127.0.0.1'
     this.server = http.createServer((req, res) => {
       this.handle(req, res).catch((err) => {
         res.statusCode = 500
         res.end(JSON.stringify({ ok: false, error: 'internal error' }))
-        // never leak err detail to the client; log server-side
         console.error('[lesson-server]', (err as Error).message)
       })
     })
@@ -58,9 +65,10 @@ export class LessonServer {
 
   listen(): Promise<number> {
     return new Promise((resolve) => {
-      this.server.listen(this.opts.port ?? 0, this.opts.host ?? '127.0.0.1', () => {
+      this.server.listen(this.opts.port ?? 0, this.host, () => {
         const addr = this.server.address()
-        resolve(typeof addr === 'object' && addr ? addr.port : 0)
+        this.port = typeof addr === 'object' && addr ? addr.port : 0
+        resolve(this.port)
       })
     })
   }
@@ -70,6 +78,15 @@ export class LessonServer {
       this.wss.clients.forEach((c) => c.terminate())
       this.wss.close(() => this.server.close(() => resolve()))
     })
+  }
+
+  /** Base HTTP origin once listening, e.g. http://127.0.0.1:51234. */
+  httpBase(): string {
+    return `http://${this.host}:${this.port}`
+  }
+
+  wsUrl(): string {
+    return `ws://${this.host}:${this.port}/ws`
   }
 
   private async handle(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
@@ -91,29 +108,70 @@ export class LessonServer {
       return json(res, result.ok ? 200 : 422, result)
     }
 
+    if (req.method === 'GET' && url.pathname.startsWith('/teach-assets/')) {
+      if (!this.opts.appAssetsRoot) return json(res, 404, { ok: false, error: 'not found' })
+      const rel = url.pathname.slice('/teach-assets/'.length)
+      return this.serveFrom(this.opts.appAssetsRoot, rel, res, false, '')
+    }
+
     if (req.method === 'GET' && (url.pathname.startsWith('/lessons/') || url.pathname.startsWith('/assets/'))) {
-      return this.serveStatic(url.pathname, res)
+      const rel = decodeURIComponent(url.pathname.replace(/^\/+/, ''))
+      const lessonId = lessonIdFromPath(url.pathname)
+      return this.serveFrom(this.opts.workspaceRoot, rel, res, true, lessonId)
     }
 
     return json(res, 404, { ok: false, error: 'not found' })
   }
 
-  private async serveStatic(pathname: string, res: http.ServerResponse): Promise<void> {
-    const rel = decodeURIComponent(pathname.replace(/^\/+/, ''))
-    const abs = path.resolve(this.opts.workspaceRoot, rel)
-    const rootWithSep = path.resolve(this.opts.workspaceRoot) + path.sep
+  private async serveFrom(
+    root: string,
+    rel: string,
+    res: http.ServerResponse,
+    allowInject: boolean,
+    lessonId: string,
+  ): Promise<void> {
+    const abs = path.resolve(root, decodeURIComponent(rel))
+    const rootWithSep = path.resolve(root) + path.sep
     if (!abs.startsWith(rootWithSep)) {
       return json(res, 403, { ok: false, error: 'forbidden' })
     }
+    const ext = path.extname(abs)
     try {
+      if (allowInject && ext === '.html' && this.opts.injectBridge !== false) {
+        const html = await fs.readFile(abs, 'utf8')
+        const injected = this.injectBridge(html, lessonId)
+        res.statusCode = 200
+        res.setHeader('content-type', CONTENT_TYPES['.html'])
+        res.end(injected)
+        return
+      }
       const data = await fs.readFile(abs)
       res.statusCode = 200
-      res.setHeader('content-type', CONTENT_TYPES[path.extname(abs)] ?? 'application/octet-stream')
+      res.setHeader('content-type', CONTENT_TYPES[ext] ?? 'application/octet-stream')
       res.end(data)
     } catch {
       return json(res, 404, { ok: false, error: 'not found' })
     }
   }
+
+  /** Inject the bridge config global + bridge.js script just before </body>. */
+  injectBridge(html: string, lessonId: string): string {
+    const config = {
+      base: this.httpBase(),
+      lessonId,
+      wsUrl: this.wsUrl(),
+    }
+    const snippet =
+      `\n<script>window.__TEACH_BRIDGE__=${JSON.stringify(config)};</script>` +
+      `\n<script src="/teach-assets/bridge.js"></script>\n`
+    return html.includes('</body>') ? html.replace('</body>', snippet + '</body>') : html + snippet
+  }
+}
+
+function lessonIdFromPath(pathname: string): string {
+  const file = (pathname.split('/').pop() ?? '').replace(/\.html?$/, '')
+  const m = /^(\d+)/.exec(file)
+  return m ? m[1] : file || 'unknown'
 }
 
 function json(res: http.ServerResponse, status: number, body: unknown): void {

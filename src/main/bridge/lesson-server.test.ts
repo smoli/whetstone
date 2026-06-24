@@ -15,12 +15,16 @@ let server: LessonServer
 let bridge: Bridge
 let base: string
 
+let appAssets: string
+
 beforeEach(async () => {
   root = await fs.mkdtemp(path.join(os.tmpdir(), 'teach-srv-'))
+  appAssets = await fs.mkdtemp(path.join(os.tmpdir(), 'teach-app-'))
   await fs.mkdir(path.join(root, 'lessons'), { recursive: true })
-  await fs.writeFile(path.join(root, 'lessons', '0004.html'), '<h1>Lesson 4</h1>')
+  await fs.writeFile(path.join(root, 'lessons', '0004.html'), '<html><body><h1>Lesson 4</h1></body></html>')
+  await fs.writeFile(path.join(appAssets, 'bridge.js'), '/* bridge */')
   bridge = new Bridge(new BridgeCore(new NodeWorkspaceFs(root)))
-  server = new LessonServer({ bridge, workspaceRoot: root, port: 0 })
+  server = new LessonServer({ bridge, workspaceRoot: root, appAssetsRoot: appAssets, port: 0 })
   const port = await server.listen()
   base = `http://127.0.0.1:${port}`
 })
@@ -28,6 +32,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await server.close()
   await fs.rm(root, { recursive: true, force: true })
+  await fs.rm(appAssets, { recursive: true, force: true })
 })
 
 describe('LessonServer', () => {
@@ -42,6 +47,22 @@ describe('LessonServer', () => {
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toContain('text/html')
     expect(await res.text()).toContain('Lesson 4')
+  })
+
+  it('injects the bridge config + bridge.js into served lesson HTML', async () => {
+    const html = await (await fetch(`${base}/lessons/0004.html`)).text()
+    expect(html).toContain('__TEACH_BRIDGE__')
+    expect(html).toContain('"lessonId":"0004"')
+    expect(html).toContain('/teach-assets/bridge.js')
+    // injected before the closing body tag
+    expect(html.indexOf('teach-assets/bridge.js')).toBeLessThan(html.indexOf('</body>'))
+  })
+
+  it('serves the app bridge.js from /teach-assets/', async () => {
+    const res = await fetch(`${base}/teach-assets/bridge.js`)
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('javascript')
+    expect(await res.text()).toContain('bridge')
   })
 
   it('accepts a valid event, records it, and emits a prompt', async () => {

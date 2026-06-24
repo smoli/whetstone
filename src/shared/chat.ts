@@ -21,7 +21,7 @@ export interface ClaudeError {
 /** A message as shown in the chat pane. */
 export interface ChatMessage {
   id: string
-  role: 'assistant' | 'tool' | 'system'
+  role: 'user' | 'assistant' | 'tool' | 'system'
   text: string
   /** For tool messages, the tool that was called. */
   toolName?: string
