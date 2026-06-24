@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { spawn } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { BridgeCore } from './bridge/bridge-core'
@@ -36,13 +37,22 @@ async function startServices(window: BrowserWindow): Promise<Services> {
 
   const mcp = await startMcpHttp(bridge)
 
+  // bypassPermissions: the spawned agent drives a trusted local workspace and
+  // headless mode can't answer permission prompts — it needs file ops + the
+  // teach-bridge MCP tools (mcp__teach-bridge__*) without prompting.
+  const extraArgs = ['--mcp-config', mcp.configPath, '--permission-mode', 'bypassPermissions']
+  // Skill discovery via cwd's parent walk only works when the workspace lives
+  // inside this repo. --add-dir additionally loads .claude/skills/ from the added
+  // dir, so the teach skill is found for ANY workspace location.
+  const skillHome = path.resolve(__dirname, '../..')
+  if (existsSync(path.join(skillHome, '.claude', 'skills', 'teach', 'SKILL.md'))) {
+    extraArgs.push('--add-dir', skillHome)
+  }
+
   const harness = new ClaudeHarness({
     spawn: (command, args, options) => spawn(command, args, { cwd: options.cwd }) as unknown as ChildLike,
     workspaceRoot,
-    // bypassPermissions: the spawned agent drives a trusted local workspace and
-    // headless mode can't answer permission prompts — it needs file ops + the
-    // teach-bridge MCP tools (mcp__teach-bridge__*) without prompting.
-    extraArgs: ['--mcp-config', mcp.configPath, '--permission-mode', 'bypassPermissions'],
+    extraArgs,
   })
   harness.onEvent((e) => window.webContents.send(IPC.chatEvent, e))
   harness.onError((e) => window.webContents.send(IPC.chatError, e))
