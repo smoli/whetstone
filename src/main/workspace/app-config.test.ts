@@ -31,4 +31,13 @@ describe('parseAppState', () => {
     expect(s.recent).toEqual(['/a', '/b'])
     expect(s.lastWorkspace).toBe('/a')
   })
+
+  it('parses openedAt timestamps, ignoring non-strings', () => {
+    const s = parseAppState(JSON.stringify({ recent: [], openedAt: { '/a': '2026-06-24T00:00:00Z', '/b': 5 } }))
+    expect(s.openedAt).toEqual({ '/a': '2026-06-24T00:00:00Z' })
+  })
+
+  it('defaults openedAt to an empty object', () => {
+    expect(parseAppState(null).openedAt).toEqual({})
+  })
 })

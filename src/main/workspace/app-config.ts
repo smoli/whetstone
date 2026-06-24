@@ -4,9 +4,11 @@ export interface AppState {
   recent: string[]
   /** The workspace open when the app last closed, if any. */
   lastWorkspace: string | null
+  /** Path → ISO timestamp it was last opened. */
+  openedAt: Record<string, string>
 }
 
-export const EMPTY_APP_STATE: AppState = { recent: [], lastWorkspace: null }
+export const EMPTY_APP_STATE: AppState = { recent: [], lastWorkspace: null, openedAt: {} }
 
 const RECENT_CAP = 8
 
@@ -26,9 +28,14 @@ export function parseAppState(raw: string | null): AppState {
   if (!raw) return { ...EMPTY_APP_STATE }
   try {
     const obj = JSON.parse(raw) as Partial<AppState>
+    const openedAt: Record<string, string> = {}
+    if (obj.openedAt && typeof obj.openedAt === 'object') {
+      for (const [k, v] of Object.entries(obj.openedAt)) if (typeof v === 'string') openedAt[k] = v
+    }
     return {
       recent: Array.isArray(obj.recent) ? obj.recent.filter((p): p is string => typeof p === 'string') : [],
       lastWorkspace: typeof obj.lastWorkspace === 'string' ? obj.lastWorkspace : null,
+      openedAt,
     }
   } catch {
     return { ...EMPTY_APP_STATE }

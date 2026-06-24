@@ -41,6 +41,10 @@ export interface AppConfig {
 export interface RecentWorkspace {
   path: string
   name: string
+  /** Mission title, if the workspace has a MISSION.md. */
+  subtitle?: string
+  /** ISO timestamp it was last opened. */
+  openedAt?: string
 }
 
 export interface LauncherState {

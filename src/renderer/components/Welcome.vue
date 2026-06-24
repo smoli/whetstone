@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useWorkspaceStore } from '../stores/workspace'
+import { formatRelativeTime } from '@shared/time'
 
 const ws = useWorkspaceStore()
 const emit = defineEmits<{ entered: [] }>()
 const topic = ref('')
 const busy = ref(false)
 const error = ref('')
+const now = Date.now()
+
+function when(iso?: string): string {
+  return formatRelativeTime(iso, now)
+}
 
 async function run(fn: () => Promise<boolean>): Promise<void> {
   busy.value = true
@@ -63,7 +69,7 @@ const create = () => run(() => ws.newSession(topic.value))
         class="recent"
       >
         <p class="label">
-          Recent
+          Recent sessions
         </p>
         <button
           v-for="r in ws.recent"
@@ -73,7 +79,13 @@ const create = () => run(() => ws.newSession(topic.value))
           :title="r.path"
           @click="openRecent(r.path)"
         >
-          <span class="name">{{ r.name }}</span>
+          <span class="row">
+            <span class="name">{{ r.subtitle || r.name }}</span>
+            <span
+              v-if="when(r.openedAt)"
+              class="ago"
+            >{{ when(r.openedAt) }}</span>
+          </span>
           <span class="path">{{ r.path }}</span>
         </button>
       </div>
@@ -165,12 +177,25 @@ button.primary {
   align-items: flex-start;
   width: 100%;
   text-align: left;
-  gap: 0.1rem;
+  gap: 0.15rem;
   margin-bottom: 0.4rem;
   background: var(--paper-card);
 }
+.recent-item .row {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
 .recent-item .name {
   font-weight: 600;
+}
+.recent-item .ago {
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  flex: 0 0 auto;
 }
 .recent-item .path {
   font-weight: 400;

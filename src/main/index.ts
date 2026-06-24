@@ -12,6 +12,7 @@ import { ClaudeHarness, wireBridgeToClaude, type ChildLike } from './claude/harn
 import { MODELS, buildExtraArgs, parseSessionFile, shouldFallbackToFresh, type SessionFile } from './claude/session'
 import { scaffoldSession, needsOverwriteConfirm, type ScaffoldDeps } from './workspace/scaffold'
 import { addRecent, removeRecent, parseAppState, type AppState } from './workspace/app-config'
+import { extractMissionTitle } from './workspace/mission'
 import { startMcpHttp } from './mcp/mcp-http'
 import { IPC, type AppConfig, type GitResult, type LauncherState } from '@shared/ipc'
 import type { ChatEvent, ChatMessage } from '@shared/chat'
@@ -25,7 +26,7 @@ const pexec = promisify(execFile)
 
 let mainWindow: BrowserWindow | null = null
 let session: Session | null = null
-let appState: AppState = { recent: [], lastWorkspace: null }
+let appState: AppState = { recent: [], lastWorkspace: null, openedAt: {} }
 let ipcReady = false
 
 async function runGit(args: string[], cwd: string): Promise<string> {
@@ -42,7 +43,7 @@ async function loadAppState(): Promise<void> {
   try {
     appState = parseAppState(await fsp.readFile(appStatePath(), 'utf8'))
   } catch {
-    appState = { recent: [], lastWorkspace: null }
+    appState = { recent: [], lastWorkspace: null, openedAt: {} }
   }
 }
 async function saveAppState(): Promise<void> {
@@ -184,6 +185,7 @@ async function openWorkspace(workspaceRoot: string): Promise<AppConfig> {
   session = await createSession(workspaceRoot)
   appState.recent = addRecent(appState.recent, workspaceRoot)
   appState.lastWorkspace = workspaceRoot
+  appState.openedAt = { ...appState.openedAt, [workspaceRoot]: new Date().toISOString() }
   await saveAppState()
   return session.getConfig()
 }
@@ -198,8 +200,16 @@ function registerIpc(): void {
   if (ipcReady) return
   ipcReady = true
 
-  ipcMain.handle(IPC.getLauncher, (): LauncherState => {
-    const recent = appState.recent.filter((p) => existsSync(p)).map((p) => ({ path: p, name: path.basename(p) }))
+  ipcMain.handle(IPC.getLauncher, async (): Promise<LauncherState> => {
+    const recent = await Promise.all(
+      appState.recent
+        .filter((p) => existsSync(p))
+        .map(async (p) => {
+          const md = await fsp.readFile(path.join(p, 'MISSION.md'), 'utf8').catch(() => null)
+          const subtitle = extractMissionTitle(md) ?? undefined
+          return { path: p, name: path.basename(p), subtitle, openedAt: appState.openedAt[p] }
+        }),
+    )
     return { recent, hasWorkspace: !!session }
   })
 
