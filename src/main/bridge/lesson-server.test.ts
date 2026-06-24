@@ -1,0 +1,103 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { promises as fs } from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { WebSocket } from 'ws'
+import { LessonServer } from './lesson-server'
+import { Bridge } from './bridge'
+import { BridgeCore } from './bridge-core'
+import { NodeWorkspaceFs } from './workspace-fs'
+
+const TS = '2026-06-24T10:00:00.000Z'
+
+let root: string
+let server: LessonServer
+let bridge: Bridge
+let base: string
+
+beforeEach(async () => {
+  root = await fs.mkdtemp(path.join(os.tmpdir(), 'teach-srv-'))
+  await fs.mkdir(path.join(root, 'lessons'), { recursive: true })
+  await fs.writeFile(path.join(root, 'lessons', '0004.html'), '<h1>Lesson 4</h1>')
+  bridge = new Bridge(new BridgeCore(new NodeWorkspaceFs(root)))
+  server = new LessonServer({ bridge, workspaceRoot: root, port: 0 })
+  const port = await server.listen()
+  base = `http://127.0.0.1:${port}`
+})
+
+afterEach(async () => {
+  await server.close()
+  await fs.rm(root, { recursive: true, force: true })
+})
+
+describe('LessonServer', () => {
+  it('serves health', async () => {
+    const res = await fetch(`${base}/healthz`)
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true })
+  })
+
+  it('serves static lesson HTML', async () => {
+    const res = await fetch(`${base}/lessons/0004.html`)
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('text/html')
+    expect(await res.text()).toContain('Lesson 4')
+  })
+
+  it('accepts a valid event, records it, and emits a prompt', async () => {
+    const prompts: string[] = []
+    bridge.onPrompt((p) => prompts.push(p))
+    const res = await fetch(`${base}/events`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        type: 'exercise_submission',
+        eventId: 'e1',
+        lessonId: '0004',
+        promptId: 'slice',
+        text: 'my vertical slice',
+        ts: TS,
+      }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.ok).toBe(true)
+    expect(prompts).toHaveLength(1)
+    // artifact actually landed on disk
+    expect(await fs.readFile(path.join(root, 'lesson-entries', '0004-slice.md'), 'utf8')).toContain('my vertical slice')
+  })
+
+  it('rejects a malformed event with 422', async () => {
+    const res = await fetch(`${base}/events`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'bogus' }),
+    })
+    expect(res.status).toBe(422)
+    expect((await res.json()).ok).toBe(false)
+  })
+
+  it('rejects non-JSON with 400', async () => {
+    const res = await fetch(`${base}/events`, { method: 'POST', body: 'not json{' })
+    expect(res.status).toBe(400)
+  })
+
+  it('delivers an agent command broadcast to a connected WS lesson client', async () => {
+    const ws = new WebSocket(`${base.replace('http', 'ws')}/ws`)
+    const received = new Promise<string>((resolve) => ws.on('message', (d) => resolve(d.toString())))
+    await new Promise<void>((resolve) => ws.on('open', () => resolve()))
+
+    await bridge.runCommand({
+      type: 'lesson_feedback',
+      commandId: 'c1',
+      lessonId: '0004',
+      anchorId: 'slice',
+      html: '<p>great LAND beat</p>',
+      ts: TS,
+    })
+
+    const msg = JSON.parse(await received)
+    expect(msg).toMatchObject({ type: 'lesson_feedback', lessonId: '0004', anchorId: 'slice' })
+    ws.close()
+  })
+})
