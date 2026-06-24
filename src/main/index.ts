@@ -92,6 +92,7 @@ async function createSession(workspaceRoot: string): Promise<Session> {
 
   let harness: ClaudeHarness
   let fellBack = false
+  let stopping = false
   let sessionStarted = resumedAtLaunch
   function makeHarness(): ClaudeHarness {
     const launchedWithResume = !!state.sessionId
@@ -107,6 +108,11 @@ async function createSession(workspaceRoot: string): Promise<Session> {
       }),
     })
     const fallbackIfNeeded = (): void => {
+      // Only a genuinely unexpected exit of the *current* harness warrants a
+      // fallback — never one we stopped on purpose (reopen) or replaced (model
+      // switch). Otherwise an idle resumed session (no init yet) would spuriously
+      // re-run /teach when torn down.
+      if (stopping || h !== harness) return
       if (!shouldFallbackToFresh({ launchedWithResume, gotInit, alreadyFellBack: fellBack })) return
       fellBack = true
       state.sessionId = null
@@ -175,6 +181,7 @@ async function createSession(workspaceRoot: string): Promise<Session> {
       }
     },
     stop: () => {
+      stopping = true
       harness.stop()
       void lessonServer.close()
       void mcp.close()
