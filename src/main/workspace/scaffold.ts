@@ -21,8 +21,8 @@ export const SKILL_SUBTREE = '.claude/skills/teach'
 
 /**
  * The static scaffold for a new teaching workspace: directories to create and
- * starter docs to write. Pure so the shape is testable. The skill (from
- * origin/main) and assets (from bundled templates) are layered on by the executor.
+ * starter docs to write. Pure so the shape is testable. The skill and assets
+ * (copied from the app's bundled files) are layered on by the executor.
  */
 export function buildScaffoldPlan(topic?: string): ScaffoldPlan {
   const subject = topic?.trim() ? topic.trim() : '<your topic>'
