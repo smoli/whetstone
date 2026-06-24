@@ -17,3 +17,67 @@ export interface ClaudeError {
   /** Process exit code, if the failure was a non-zero exit. */
   code?: number
 }
+
+/** A message as shown in the chat pane. */
+export interface ChatMessage {
+  id: string
+  role: 'assistant' | 'tool' | 'system'
+  text: string
+  /** For tool messages, the tool that was called. */
+  toolName?: string
+  /** True while the assistant is still streaming into this message. */
+  pending?: boolean
+}
+
+/** Human-readable summaries for the agent's bridge tool calls. */
+const TOOL_LABELS: Record<string, string> = {
+  lesson_feedback: 'sent feedback into your lesson',
+  patch_lesson: 'updated your lesson',
+  schedule_review: 'scheduled a review',
+  record_learning: 'recorded what you learned',
+}
+
+/**
+ * Fold a ChatEvent into the running message list. Pure: returns a new array.
+ * Streaming assistant text accumulates into the current pending message; a tool
+ * use or result finalizes it.
+ */
+export function foldChatEvent(
+  messages: ChatMessage[],
+  ev: ChatEvent,
+  nextId: () => string,
+): ChatMessage[] {
+  const last = messages[messages.length - 1]
+
+  switch (ev.kind) {
+    case 'assistant_text': {
+      if (last && last.role === 'assistant' && last.pending) {
+        const updated = { ...last, text: last.text + ev.text }
+        return [...messages.slice(0, -1), updated]
+      }
+      return [...messages, { id: nextId(), role: 'assistant', text: ev.text, pending: true }]
+    }
+    case 'tool_use': {
+      const finalized = finalizePending(messages)
+      const label = TOOL_LABELS[ev.name] ?? `ran ${ev.name}`
+      return [...finalized, { id: nextId(), role: 'tool', toolName: ev.name, text: label }]
+    }
+    case 'result': {
+      const finalized = finalizePending(messages)
+      if (ev.isError) {
+        return [...finalized, { id: nextId(), role: 'system', text: 'The teaching agent reported an error.' }]
+      }
+      return finalized
+    }
+    case 'system':
+      return messages
+  }
+}
+
+function finalizePending(messages: ChatMessage[]): ChatMessage[] {
+  const last = messages[messages.length - 1]
+  if (last && last.pending) {
+    return [...messages.slice(0, -1), { ...last, pending: false }]
+  }
+  return messages
+}
