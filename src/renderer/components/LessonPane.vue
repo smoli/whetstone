@@ -4,6 +4,7 @@ import { useWorkspaceStore } from '../stores/workspace'
 import { contentLabel } from '@shared/links'
 
 const ws = useWorkspaceStore()
+defineProps<{ sidebarCollapsed: boolean }>()
 const commitMsg = ref('')
 const commitStatus = ref('')
 
@@ -21,11 +22,13 @@ async function commit(): Promise<void> {
   <section class="content">
     <header class="content-head">
       <div class="bar">
-        <span class="ws-name">{{ ws.config?.workspaceName ?? 'Workspace' }}</span>
-        <span
-          v-if="title"
-          class="sep"
-        >›</span>
+        <template v-if="sidebarCollapsed">
+          <span class="ws-name">{{ ws.config?.workspaceName ?? 'Workspace' }}</span>
+          <span
+            v-if="title"
+            class="sep"
+          >›</span>
+        </template>
         <span class="title">{{ title }}</span>
         <div class="spacer" />
         <input
@@ -97,7 +100,7 @@ async function commit(): Promise<void> {
 .title {
   font-family: var(--serif);
   font-size: 1rem;
-  color: var(--ink-soft);
+  color: var(--ink);
   text-transform: capitalize;
   overflow: hidden;
   text-overflow: ellipsis;

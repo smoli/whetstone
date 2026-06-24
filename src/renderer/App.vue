@@ -87,7 +87,10 @@ onMounted(async () => {
       @toggle="toggleSidebar"
       @sessions="ws.toLauncher()"
     />
-    <LessonPane class="pane pane--content" />
+    <LessonPane
+      class="pane pane--content"
+      :sidebar-collapsed="sidebarCollapsed"
+    />
     <div
       class="splitter"
       :class="{ dragging }"

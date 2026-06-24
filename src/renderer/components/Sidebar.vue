@@ -21,6 +21,10 @@ function isActive(section: 'lessons' | 'reference', file: string): boolean {
       >
         {{ collapsed ? '☰' : '«' }}
       </button>
+      <strong
+        v-if="!collapsed"
+        class="ws-name"
+      >{{ ws.config?.workspaceName ?? 'Workspace' }}</strong>
     </div>
 
     <!-- expanded: full lists -->
@@ -129,6 +133,13 @@ function isActive(section: 'lessons' | 'reference', file: string): boolean {
   cursor: pointer;
   font-size: 1rem;
   padding: 0.2rem 0.35rem;
+}
+.ws-name {
+  font-family: var(--serif);
+  font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .side-body {
   flex: 1;
