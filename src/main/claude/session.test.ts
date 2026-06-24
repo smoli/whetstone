@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildExtraArgs, parseSessionFile } from './session'
+import { buildExtraArgs, parseSessionFile, shouldFallbackToFresh } from './session'
 
 describe('buildExtraArgs', () => {
   it('always includes mcp-config and bypassPermissions', () => {
@@ -23,6 +23,24 @@ describe('buildExtraArgs', () => {
     const args = buildExtraArgs({ mcpConfigPath: '/m', resumeId: 'sess-1' })
     expect(args[args.indexOf('--resume') + 1]).toBe('sess-1')
     expect(buildExtraArgs({ mcpConfigPath: '/m', resumeId: null })).not.toContain('--resume')
+  })
+})
+
+describe('shouldFallbackToFresh', () => {
+  it('falls back when a resume launch produced no init', () => {
+    expect(shouldFallbackToFresh({ launchedWithResume: true, gotInit: false, alreadyFellBack: false })).toBe(true)
+  })
+
+  it('does not fall back when resume succeeded (got init)', () => {
+    expect(shouldFallbackToFresh({ launchedWithResume: true, gotInit: true, alreadyFellBack: false })).toBe(false)
+  })
+
+  it('does not fall back for a fresh (non-resume) launch', () => {
+    expect(shouldFallbackToFresh({ launchedWithResume: false, gotInit: false, alreadyFellBack: false })).toBe(false)
+  })
+
+  it('only falls back once', () => {
+    expect(shouldFallbackToFresh({ launchedWithResume: true, gotInit: false, alreadyFellBack: true })).toBe(false)
   })
 })
 

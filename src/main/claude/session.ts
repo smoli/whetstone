@@ -39,6 +39,19 @@ export function buildExtraArgs(opts: BuildArgsOptions): string[] {
   return args
 }
 
+/**
+ * Decide whether to fall back to a fresh session. A resume launch that never
+ * produced a system/init means the session id was invalid ("No conversation
+ * found") — clear it and start fresh. Only fall back once.
+ */
+export function shouldFallbackToFresh(opts: {
+  launchedWithResume: boolean
+  gotInit: boolean
+  alreadyFellBack: boolean
+}): boolean {
+  return opts.launchedWithResume && !opts.gotInit && !opts.alreadyFellBack
+}
+
 /** Parse a persisted session file; returns null if absent/corrupt. */
 export function parseSessionFile(raw: string | null): SessionFile | null {
   if (!raw) return null

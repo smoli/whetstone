@@ -8,7 +8,7 @@ import { Bridge } from './bridge/bridge'
 import { NodeWorkspaceFs } from './bridge/workspace-fs'
 import { LessonServer } from './bridge/lesson-server'
 import { ClaudeHarness, wireBridgeToClaude, type ChildLike } from './claude/harness'
-import { MODELS, buildExtraArgs, parseSessionFile, type SessionFile } from './claude/session'
+import { MODELS, buildExtraArgs, parseSessionFile, shouldFallbackToFresh, type SessionFile } from './claude/session'
 import { startMcpHttp, type McpHttpHandle } from './mcp/mcp-http'
 import { IPC, type AppConfig } from '@shared/ipc'
 import type { ChatEvent, ChatMessage } from '@shared/chat'
@@ -60,7 +60,11 @@ async function startServices(window: BrowserWindow): Promise<Services> {
   }
 
   let harness: ClaudeHarness
+  let fellBack = false
+  let sessionStarted = resumedAtLaunch // resumed sessions need no /teach
   function makeHarness(): ClaudeHarness {
+    const launchedWithResume = !!state.sessionId
+    let gotInit = false
     const h = new ClaudeHarness({
       spawn: (command, args, options) => spawn(command, args, { cwd: options.cwd }) as unknown as ChildLike,
       workspaceRoot,
@@ -71,14 +75,30 @@ async function startServices(window: BrowserWindow): Promise<Services> {
         skillHome: hasSkill ? skillHome : null,
       }),
     })
+    // A stale/expired session id makes --resume fail before any init. Detect that
+    // (no init seen) and self-heal: clear the id, restart fresh, re-run /teach.
+    const fallbackIfNeeded = (): void => {
+      if (!shouldFallbackToFresh({ launchedWithResume, gotInit, alreadyFellBack: fellBack })) return
+      fellBack = true
+      state.sessionId = null
+      void persist()
+      harness = makeHarness()
+      sessionStarted = true
+      harness.send('/teach')
+    }
     h.onEvent((e: ChatEvent) => {
+      if (e.kind === 'system' && e.subtype === 'init') gotInit = true
       if (e.kind === 'system' && e.sessionId && e.sessionId !== state.sessionId) {
         state.sessionId = e.sessionId
         void persist()
       }
       window.webContents.send(IPC.chatEvent, e)
     })
-    h.onError((e) => window.webContents.send(IPC.chatError, e))
+    h.onError((e) => {
+      window.webContents.send(IPC.chatError, e)
+      fallbackIfNeeded()
+    })
+    h.onClose(() => fallbackIfNeeded())
     h.start()
     return h
   }
@@ -86,7 +106,6 @@ async function startServices(window: BrowserWindow): Promise<Services> {
   // Wire bridge prompts to whichever harness is current (survives model switches).
   wireBridgeToClaude(bridge, { send: (p) => harness.send(p) })
 
-  let sessionStarted = resumedAtLaunch // resumed sessions need no /teach
   ipcMain.on(IPC.startSession, () => {
     if (sessionStarted) return
     sessionStarted = true
