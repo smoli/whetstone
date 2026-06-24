@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { buildScaffoldPlan, scaffoldSession, type ScaffoldDeps } from './scaffold'
+import { buildScaffoldPlan, scaffoldSession, needsOverwriteConfirm, type ScaffoldDeps } from './scaffold'
+
+describe('needsOverwriteConfirm', () => {
+  it('is false for an empty or OS-noise-only directory', () => {
+    expect(needsOverwriteConfirm([])).toBe(false)
+    expect(needsOverwriteConfirm(['.DS_Store'])).toBe(false)
+  })
+
+  it('is true when real content is present', () => {
+    expect(needsOverwriteConfirm(['MISSION.md'])).toBe(true)
+    expect(needsOverwriteConfirm(['.DS_Store', 'lessons'])).toBe(true)
+  })
+})
 
 describe('buildScaffoldPlan', () => {
   it('creates the standard workspace directories', () => {

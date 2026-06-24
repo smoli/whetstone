@@ -10,7 +10,7 @@ import { NodeWorkspaceFs } from './bridge/workspace-fs'
 import { LessonServer } from './bridge/lesson-server'
 import { ClaudeHarness, wireBridgeToClaude, type ChildLike } from './claude/harness'
 import { MODELS, buildExtraArgs, parseSessionFile, shouldFallbackToFresh, type SessionFile } from './claude/session'
-import { scaffoldSession, type ScaffoldDeps } from './workspace/scaffold'
+import { scaffoldSession, needsOverwriteConfirm, type ScaffoldDeps } from './workspace/scaffold'
 import { addRecent, removeRecent, parseAppState, type AppState } from './workspace/app-config'
 import { startMcpHttp } from './mcp/mcp-http'
 import { IPC, type AppConfig, type GitResult, type LauncherState } from '@shared/ipc'
@@ -227,6 +227,26 @@ function registerIpc(): void {
       buttonLabel: 'Create',
     })
     if (res.canceled || !res.filePath) return null
+    const targetDir = res.filePath
+
+    // Guard against clobbering an existing session/folder.
+    if (existsSync(targetDir)) {
+      const entries = await fsp.readdir(targetDir).catch(() => [] as string[])
+      if (needsOverwriteConfirm(entries)) {
+        const choice = await dialog.showMessageBox(mainWindow, {
+          type: 'warning',
+          buttons: ['Cancel', 'Create here anyway'],
+          defaultId: 0,
+          cancelId: 0,
+          message: 'This folder already exists and isn’t empty.',
+          detail:
+            `${targetDir}\n\nCreating a session here may overwrite MISSION.md, ` +
+            `assets, and the skill, and re-initialise git. Continue?`,
+        })
+        if (choice.response !== 1) return null
+      }
+    }
+
     const deps: ScaffoldDeps = {
       exec: (file, args, cwd) => pexec(file, args, { cwd }).then((r) => r.stdout),
       readFile: (p) => fsp.readFile(p, 'utf8'),
@@ -236,8 +256,8 @@ function registerIpc(): void {
       },
       mkdir: (p) => fsp.mkdir(p, { recursive: true }).then(() => undefined),
     }
-    await scaffoldSession({ repoRoot, assetsSource: templateAssets, targetDir: res.filePath, topic }, deps)
-    return openWorkspace(res.filePath)
+    await scaffoldSession({ repoRoot, assetsSource: templateAssets, targetDir, topic }, deps)
+    return openWorkspace(targetDir)
   })
 
   ipcMain.handle(IPC.gitCommit, (_e, message: string): Promise<GitResult> => {

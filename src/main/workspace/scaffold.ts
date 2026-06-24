@@ -57,6 +57,14 @@ export function buildScaffoldPlan(topic?: string): ScaffoldPlan {
   }
 }
 
+/**
+ * Whether a target directory's contents warrant an overwrite confirmation.
+ * Ignores OS noise so an effectively-empty folder doesn't trigger a prompt.
+ */
+export function needsOverwriteConfirm(entries: string[]): boolean {
+  return entries.some((e) => e !== '.DS_Store')
+}
+
 export interface ScaffoldDeps {
   /** Run a command, resolving its stdout. */
   exec(file: string, args: string[], cwd: string): Promise<string>
