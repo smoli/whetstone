@@ -22,6 +22,22 @@ async function commit(): Promise<void> {
   <section class="content">
     <header class="content-head">
       <div class="bar">
+        <button
+          class="nav-btn"
+          title="Back"
+          :disabled="!ws.canBack"
+          @click="ws.back()"
+        >
+          ‹
+        </button>
+        <button
+          class="nav-btn"
+          title="Forward"
+          :disabled="!ws.canForward"
+          @click="ws.forward()"
+        >
+          ›
+        </button>
         <template v-if="sidebarCollapsed">
           <span class="ws-name">{{ ws.config?.workspaceName ?? 'Workspace' }}</span>
           <span
@@ -86,6 +102,23 @@ async function commit(): Promise<void> {
   align-items: center;
   gap: 0.5rem;
   width: 100%;
+}
+.nav-btn {
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.nav-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .ws-name {
   font-family: var(--serif);

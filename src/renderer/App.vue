@@ -55,6 +55,14 @@ onMounted(async () => {
   window.teach.onChatEvent((e) => chat.applyEvent(e))
   window.teach.onChatError((e) => chat.applyError(e))
 
+  // The content iframe (bridge.js) announces which page it shows, so we sync the
+  // sidebar highlight + history even when an in-page link drove the navigation.
+  window.addEventListener('message', (e: MessageEvent) => {
+    const d = e.data as { source?: string; kind?: string; section?: string; file?: string } | null
+    if (!ws.active || !d || d.source !== 'teach-bridge' || d.kind !== 'navigated' || !d.file) return
+    ws.onNavigated(d.section === 'reference' ? 'reference' : 'lessons', d.file)
+  })
+
   watch(
     () => ws.active,
     (now, prev) => {

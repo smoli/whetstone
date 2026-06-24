@@ -72,6 +72,20 @@ describe('bridge init', () => {
     expect(document.querySelector('.exercise [data-teach-submit]')).not.toBeNull()
   })
 
+  it('announces the current page to the host on init', () => {
+    const msgs: { source?: string; kind?: string; section?: string }[] = []
+    TeachBridge.create({
+      base: 'http://127.0.0.1:9999',
+      lessonId: '0004',
+      wsUrl: null,
+      fetchImpl: fakeFetch,
+      postMessage: (m: { source?: string; kind?: string; section?: string }) => msgs.push(m),
+    }).init()
+    const nav = msgs.find((m) => m.kind === 'navigated')
+    expect(nav).toBeTruthy()
+    expect(nav?.source).toBe('teach-bridge')
+  })
+
   it('injects affordance styles once', () => {
     const b = makeBridge()
     b.init()

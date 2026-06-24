@@ -16,6 +16,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const lessons = ref<string[]>([])
   const references = ref<string[]>([])
   const current = ref<ContentRef | null>(null)
+  const history = ref<ContentRef[]>([])
+  const histIndex = ref(-1)
   const model = ref('default')
   const models = ref<ModelOption[]>([])
   const session = ref<{ messages: ChatMessage[]; resumed: boolean }>({ messages: [], resumed: false })
@@ -24,6 +26,21 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!config.value || !current.value) return null
     return `${config.value.lessonBase}/${current.value.section}/${current.value.file}`
   })
+
+  const canBack = computed(() => histIndex.value > 0)
+  const canForward = computed(() => histIndex.value < history.value.length - 1)
+
+  function sameRef(a: ContentRef | null, b: ContentRef | null): boolean {
+    return !!a && !!b && a.section === b.section && a.file === b.file
+  }
+
+  /** Go to a content ref, pushing onto history (truncating any forward entries). */
+  function navigate(ref: ContentRef): void {
+    if (sameRef(current.value, ref)) return
+    current.value = ref
+    history.value = [...history.value.slice(0, histIndex.value + 1), ref]
+    histIndex.value = history.value.length - 1
+  }
 
   async function refreshContents(): Promise<void> {
     lessons.value = await window.teach.listLessons()
@@ -37,11 +54,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     session.value = { messages: cfg.messages, resumed: cfg.resumed }
     await refreshContents()
     // Default the content view to the most recent lesson.
-    current.value = lessons.value.length
-      ? { section: 'lessons', file: lessons.value[lessons.value.length - 1] }
+    history.value = []
+    histIndex.value = -1
+    current.value = null
+    const initial = lessons.value.length
+      ? { section: 'lessons' as const, file: lessons.value[lessons.value.length - 1] }
       : references.value.length
-        ? { section: 'reference', file: references.value[0] }
+        ? { section: 'reference' as const, file: references.value[0] }
         : null
+    if (initial) navigate(initial)
     active.value = true
   }
 
@@ -77,7 +98,24 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function openItem(section: ContentSection, file: string): void {
-    current.value = { section, file }
+    navigate({ section, file })
+  }
+
+  /** A page loaded in the content iframe announced itself (incl. in-page links). */
+  function onNavigated(section: ContentSection, file: string): void {
+    navigate({ section, file })
+  }
+
+  function back(): void {
+    if (!canBack.value) return
+    histIndex.value -= 1
+    current.value = history.value[histIndex.value]
+  }
+
+  function forward(): void {
+    if (!canForward.value) return
+    histIndex.value += 1
+    current.value = history.value[histIndex.value]
   }
 
   function setModel(id: string): void {
@@ -91,7 +129,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   return {
-    active, recent, config, lessons, references, current, currentUrl, model, models, session,
-    loadLauncher, openFolder, openRecent, newSession, toLauncher, openItem, refreshContents, setModel, commit,
+    active, recent, config, lessons, references, current, currentUrl, canBack, canForward, model, models, session,
+    loadLauncher, openFolder, openRecent, newSession, toLauncher, openItem, onNavigated, back, forward,
+    refreshContents, setModel, commit,
   }
 })

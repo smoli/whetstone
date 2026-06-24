@@ -234,7 +234,22 @@
       if (head) head.appendChild(style)
     }
 
+    // Tell the host app which page is now showing, so it can sync the sidebar
+    // highlight and navigation history even when a link inside the page (not the
+    // app) drove the navigation.
+    bridge.announceNavigation = function () {
+      var poster =
+        state.postMessage ||
+        (typeof window !== 'undefined' && window.parent ? window.parent.postMessage.bind(window.parent) : null)
+      if (!poster) return
+      var path = (typeof location !== 'undefined' && location.pathname) || ''
+      var file = path.split('/').pop() || ''
+      var section = path.indexOf('/reference/') !== -1 ? 'reference' : 'lessons'
+      poster({ source: 'teach-bridge', kind: 'navigated', section: section, file: file }, '*')
+    }
+
     bridge.init = function () {
+      bridge.announceNavigation()
       bridge.injectStyles()
       bridge.enhanceExercises()
       bridge.enhanceQuizzes()
