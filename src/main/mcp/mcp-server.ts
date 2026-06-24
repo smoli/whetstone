@@ -1,5 +1,4 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import type { Bridge } from '../bridge/bridge'
 import { buildAgentTools, type ToolDeps } from './tools'
 
@@ -23,15 +22,4 @@ export function createMcpServer(bridge: Pick<Bridge, 'runCommand'>, deps?: ToolD
   }
 
   return server
-}
-
-/**
- * Mount the MCP server on a stateless Streamable-HTTP transport. Returns the
- * transport so the caller can route requests to it from its HTTP server.
- * (Integration-wired in the Electron main process; not unit-tested here.)
- */
-export async function connectStreamableHttp(server: McpServer): Promise<StreamableHTTPServerTransport> {
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
-  await server.connect(transport)
-  return transport
 }

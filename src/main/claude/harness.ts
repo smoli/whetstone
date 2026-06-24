@@ -53,6 +53,12 @@ export class ClaudeHarness {
     child.stdout.on('data', (chunk) => {
       for (const ev of this.parser.push(chunk.toString())) this.eventCb(ev)
     })
+    // Surface claude's stderr (incl. --verbose / MCP connection diagnostics) to
+    // the dev console; never forwarded to the chat UI.
+    child.stderr?.on('data', (chunk) => {
+      const text = chunk.toString().trimEnd()
+      if (text) console.error('[claude]', text)
+    })
     child.on('error', (err) => {
       this.errorCb({ kind: 'error', message: safeMessage(err) })
     })

@@ -39,7 +39,10 @@ async function startServices(window: BrowserWindow): Promise<Services> {
   const harness = new ClaudeHarness({
     spawn: (command, args, options) => spawn(command, args, { cwd: options.cwd }) as unknown as ChildLike,
     workspaceRoot,
-    extraArgs: ['--mcp-config', mcp.configPath],
+    // bypassPermissions: the spawned agent drives a trusted local workspace and
+    // headless mode can't answer permission prompts — it needs file ops + the
+    // teach-bridge MCP tools (mcp__teach-bridge__*) without prompting.
+    extraArgs: ['--mcp-config', mcp.configPath, '--permission-mode', 'bypassPermissions'],
   })
   harness.onEvent((e) => window.webContents.send(IPC.chatEvent, e))
   harness.onError((e) => window.webContents.send(IPC.chatError, e))
