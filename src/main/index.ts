@@ -21,11 +21,13 @@ import type { ChatEvent, ChatMessage } from '@shared/chat'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const SESSION_FILE = '.teach-desktop.json'
-const repoRoot = path.resolve(__dirname, '../..')
-const appAssetsRoot = path.join(repoRoot, 'assets')
+// Bundled resources: in dev they live in the repo checkout; when packaged,
+// electron-builder copies .claude/skills + assets into Resources/ (process.resourcesPath).
+const resourceBase = app.isPackaged ? process.resourcesPath : path.resolve(__dirname, '../..')
+const appAssetsRoot = path.join(resourceBase, 'assets')
 // Bundled template sources for new sessions (no git/network — works packaged).
 const templateAssets = appAssetsRoot
-const skillSource = path.join(repoRoot, '.claude', 'skills', 'teach')
+const skillSource = path.join(resourceBase, '.claude', 'skills', 'teach')
 const pexec = promisify(execFile)
 
 let mainWindow: BrowserWindow | null = null
@@ -81,7 +83,9 @@ async function createSession(workspaceRoot: string): Promise<Session> {
 
   // Use the workspace's own skill if present; otherwise lend the app's via --add-dir.
   const ownsSkill = existsSync(path.join(workspaceRoot, '.claude', 'skills', 'teach', 'SKILL.md'))
-  const skillHome = existsSync(path.join(repoRoot, '.claude', 'skills', 'teach', 'SKILL.md')) ? repoRoot : null
+  const skillHome = existsSync(path.join(resourceBase, '.claude', 'skills', 'teach', 'SKILL.md'))
+    ? resourceBase
+    : null
 
   const persisted = parseSessionFile(await wfs.read(SESSION_FILE))
   const resumedAtLaunch = !!persisted?.sessionId

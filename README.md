@@ -1,6 +1,8 @@
 # Whetstone
 
-**Sharpen what you know.** Whetstone is a desktop app that turns the
+**Sharpen what you know.** 
+
+Whetstone is a desktop app that turns the
 [`teach` skill](https://www.aihero.dev/learn-anything-with-my-teach-skill) into an
 integrated, two-way learning environment. It wraps **Claude Code** running the
 skill and adds a live bridge, so the AI-generated lessons aren't just things you
@@ -9,9 +11,6 @@ read — you can *do* them, and the teacher responds inside the lesson itself.
 ![Whetstone](./whetstone-scr.png)
 
 ## What it is
-
-Built on the **`teach`** skill by AI Hero —
-<https://www.aihero.dev/learn-anything-with-my-teach-skill>.
 
 A teaching session is a folder on disk (the "workspace") containing a `MISSION.md`,
 lessons, reference docs, learning records, and notes. Whetstone gives that
@@ -86,7 +85,9 @@ npm test            # Vitest (unit + integration; no real claude, no real ports)
 npm run test:watch  # watch mode
 npm run typecheck   # vue-tsc, strict
 npm run lint        # eslint
-npm run build       # production bundle (electron-vite)
+npm run build       # production bundle (electron-vite → out/)
+npm run dist        # package a distributable (electron-builder → release/)
+npm run dist:dir    # unpacked app only (faster; no installer/signing)
 ```
 
 Layout:
@@ -117,12 +118,18 @@ Conventions and gotchas:
 - **Untrusted lessons:** never give the lesson iframe node integration; it reaches
   the app only through the bridge's POST/WS protocol.
 
-### Not done yet
+### Packaging
 
-**Packaging.** The app runs from this checkout; bundled-resource paths assume that
-layout. A distributable build still needs electron-builder with `.claude/skills/`
-and `assets/` shipped as resources (resolved via `process.resourcesPath`), plus an
-app id/icon.
+`npm run dist` produces a distributable in `release/` via **electron-builder**
+(per-OS target: dmg / nsis / AppImage); `npm run dist:dir` produces just the
+unpacked app for quick checks. The `teach` skill (`.claude/skills`) and shared
+`assets/` are shipped as `extraResources`, and the app resolves them from
+`process.resourcesPath` when packaged (and from the repo in dev) — so new-session
+scaffolding works in a built app, no git or network required.
+
+Not yet configured: a **custom app icon** (the default Electron icon is used) and
+**code signing / notarization** (set up signing identities for distribution
+outside your own machine — see <https://electron.build/code-signing>).
 
 ## Credit
 

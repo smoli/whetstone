@@ -1,9 +1,10 @@
 {
-  "name": "teach-desktop",
-  "version": "0.0.0",
+  "name": "whetstone",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Desktop app wrapping Claude Code's teach skill with a bidirectional chat + lesson bridge",
+  "description": "Whetstone — a desktop home for Claude Code's teach skill with a bidirectional chat + lesson bridge",
+  "author": "Stephan Smola <smola@farbspender.de>",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -12,7 +13,41 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "dist": "electron-vite build && electron-builder",
+    "dist:dir": "electron-vite build && electron-builder --dir"
+  },
+  "build": {
+    "appId": "de.farbspender.whetstone",
+    "productName": "Whetstone",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".claude/skills",
+        "to": ".claude/skills"
+      },
+      {
+        "from": "assets",
+        "to": "assets"
+      }
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.education"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Education"
+    }
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
@@ -30,6 +65,7 @@
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/test-utils": "^2.4.6",
     "electron": "^33.3.0",
+    "electron-builder": "^25.1.8",
     "electron-vite": "^2.3.0",
     "eslint": "^9.17.0",
     "eslint-plugin-vue": "^9.32.0",
