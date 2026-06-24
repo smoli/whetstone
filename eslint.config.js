@@ -21,6 +21,10 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'vue/multi-word-component-names': 'off',
+      // We render agent markdown via v-html, but only after DOMPurify sanitization
+      // (see src/renderer/markdown.ts + markdown.test.ts proving scripts/handlers
+      // are stripped). The directive is intentional.
+      'vue/no-v-html': 'off',
     },
   },
 )

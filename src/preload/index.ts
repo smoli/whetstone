@@ -1,10 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC, type TeachApi, type AppConfig } from '@shared/ipc'
-import type { ChatEvent, ClaudeError } from '@shared/chat'
+import type { ChatEvent, ClaudeError, ChatMessage } from '@shared/chat'
 
 const api: TeachApi = {
   sendChat: (text) => ipcRenderer.send(IPC.sendChat, text),
   startSession: () => ipcRenderer.send(IPC.startSession),
+  saveSession: (messages: ChatMessage[]) => ipcRenderer.send(IPC.saveSession, messages),
+  setModel: (model: string) => ipcRenderer.send(IPC.setModel, model),
   onChatEvent: (cb) => {
     const listener = (_e: unknown, payload: ChatEvent) => cb(payload)
     ipcRenderer.on(IPC.chatEvent, listener)

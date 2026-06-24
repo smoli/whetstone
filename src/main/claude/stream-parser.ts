@@ -57,8 +57,11 @@ export function parseLine(line: string): ChatEvent[] {
           isError: msg.is_error === true || msg.subtype === 'error_max_turns' || msg.subtype === 'error_during_execution',
         },
       ]
-    case 'system':
-      return [{ kind: 'system', subtype: typeof msg.subtype === 'string' ? msg.subtype : 'unknown' }]
+    case 'system': {
+      const ev: ChatEvent = { kind: 'system', subtype: typeof msg.subtype === 'string' ? msg.subtype : 'unknown' }
+      if (typeof msg.session_id === 'string') ev.sessionId = msg.session_id
+      return [ev]
+    }
     default:
       return []
   }

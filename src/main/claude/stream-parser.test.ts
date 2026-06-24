@@ -45,6 +45,11 @@ describe('parseLine', () => {
     expect(evs).toEqual([{ kind: 'system', subtype: 'init' }])
   })
 
+  it('captures the session_id from system init', () => {
+    const evs = parseLine(JSON.stringify({ type: 'system', subtype: 'init', session_id: 'abc-123' }))
+    expect(evs[0]).toEqual({ kind: 'system', subtype: 'init', sessionId: 'abc-123' })
+  })
+
   it('ignores blank lines and invalid JSON without throwing', () => {
     expect(parseLine('')).toEqual([])
     expect(parseLine('   ')).toEqual([])

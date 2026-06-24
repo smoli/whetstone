@@ -8,7 +8,7 @@ export type ChatEvent =
   | { kind: 'assistant_text'; text: string }
   | { kind: 'tool_use'; name: string; input: unknown }
   | { kind: 'result'; text: string; isError: boolean }
-  | { kind: 'system'; subtype: string }
+  | { kind: 'system'; subtype: string; sessionId?: string }
 
 /** A typed, user-safe error state. The agent's failures never surface raw. */
 export interface ClaudeError {
@@ -25,6 +25,8 @@ export interface ChatMessage {
   text: string
   /** For tool messages, the tool that was called. */
   toolName?: string
+  /** For tool messages, how many consecutive tool calls were collapsed here. */
+  count?: number
   /** True while the assistant is still streaming into this message. */
   pending?: boolean
 }
@@ -58,9 +60,15 @@ export function foldChatEvent(
       return [...messages, { id: nextId(), role: 'assistant', text: ev.text, pending: true }]
     }
     case 'tool_use': {
-      const finalized = finalizePending(messages)
       const label = TOOL_LABELS[ev.name] ?? `ran ${ev.name}`
-      return [...finalized, { id: nextId(), role: 'tool', toolName: ev.name, text: label }]
+      // Collapse a run of consecutive tool calls into one message that shows the
+      // current tool, keeping a count of how many ran.
+      if (last && last.role === 'tool') {
+        const merged = { ...last, toolName: ev.name, text: label, count: (last.count ?? 1) + 1 }
+        return [...messages.slice(0, -1), merged]
+      }
+      const finalized = finalizePending(messages)
+      return [...finalized, { id: nextId(), role: 'tool', toolName: ev.name, text: label, count: 1 }]
     }
     case 'result': {
       const finalized = finalizePending(messages)

@@ -39,6 +39,16 @@ describe('foldChatEvent', () => {
     expect(msgs[1].text).toContain('feedback')
   })
 
+  it('collapses consecutive tool calls into one message showing the current tool', () => {
+    const msgs = fold([
+      { kind: 'tool_use', name: 'patch_lesson', input: {} },
+      { kind: 'tool_use', name: 'schedule_review', input: {} },
+      { kind: 'tool_use', name: 'record_learning', input: {} },
+    ])
+    expect(msgs).toHaveLength(1)
+    expect(msgs[0]).toMatchObject({ role: 'tool', toolName: 'record_learning', count: 3 })
+  })
+
   it('starts a new assistant message after a tool interruption', () => {
     const msgs = fold([
       { kind: 'assistant_text', text: 'First.' },

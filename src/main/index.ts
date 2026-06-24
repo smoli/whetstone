@@ -8,10 +8,13 @@ import { Bridge } from './bridge/bridge'
 import { NodeWorkspaceFs } from './bridge/workspace-fs'
 import { LessonServer } from './bridge/lesson-server'
 import { ClaudeHarness, wireBridgeToClaude, type ChildLike } from './claude/harness'
+import { MODELS, buildExtraArgs, parseSessionFile, type SessionFile } from './claude/session'
 import { startMcpHttp, type McpHttpHandle } from './mcp/mcp-http'
 import { IPC, type AppConfig } from '@shared/ipc'
+import type { ChatEvent, ChatMessage } from '@shared/chat'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const SESSION_FILE = '.teach-desktop.json'
 
 /** The active teaching workspace. Defaults to the bundled ExampleLesson. */
 function resolveWorkspace(): string {
@@ -23,64 +26,111 @@ function resolveWorkspace(): string {
 interface Services {
   lessonServer: LessonServer
   mcp: McpHttpHandle
-  harness: ClaudeHarness
-  workspaceRoot: string
+  stop(): void
 }
 
 async function startServices(window: BrowserWindow): Promise<Services> {
   const workspaceRoot = resolveWorkspace()
   const appAssetsRoot = path.resolve(__dirname, '../../assets')
+  const wfs = new NodeWorkspaceFs(workspaceRoot)
 
-  const bridge = new Bridge(new BridgeCore(new NodeWorkspaceFs(workspaceRoot)))
+  const bridge = new Bridge(new BridgeCore(wfs))
   const lessonServer = new LessonServer({ bridge, workspaceRoot, appAssetsRoot, port: 0 })
   await lessonServer.listen()
-
   const mcp = await startMcpHttp(bridge)
 
-  // bypassPermissions: the spawned agent drives a trusted local workspace and
-  // headless mode can't answer permission prompts — it needs file ops + the
-  // teach-bridge MCP tools (mcp__teach-bridge__*) without prompting.
-  const extraArgs = ['--mcp-config', mcp.configPath, '--permission-mode', 'bypassPermissions']
-  // Skill discovery via cwd's parent walk only works when the workspace lives
-  // inside this repo. --add-dir additionally loads .claude/skills/ from the added
-  // dir, so the teach skill is found for ANY workspace location.
+  // Skill discovery: --add-dir loads .claude/skills/ from the app's skill home
+  // regardless of the workspace cwd.
   const skillHome = path.resolve(__dirname, '../..')
-  if (existsSync(path.join(skillHome, '.claude', 'skills', 'teach', 'SKILL.md'))) {
-    extraArgs.push('--add-dir', skillHome)
+  const hasSkill = existsSync(path.join(skillHome, '.claude', 'skills', 'teach', 'SKILL.md'))
+
+  // Restore prior session (if any) so we can resume instead of re-running /teach.
+  const persisted = parseSessionFile(await wfs.read(SESSION_FILE))
+  const resumedAtLaunch = !!persisted?.sessionId
+  const state: SessionFile = {
+    sessionId: persisted?.sessionId ?? null,
+    model: persisted?.model ?? 'default',
+    messages: persisted?.messages ?? [],
+    updatedAt: persisted?.updatedAt ?? '',
   }
 
-  const harness = new ClaudeHarness({
-    spawn: (command, args, options) => spawn(command, args, { cwd: options.cwd }) as unknown as ChildLike,
-    workspaceRoot,
-    extraArgs,
-  })
-  harness.onEvent((e) => window.webContents.send(IPC.chatEvent, e))
-  harness.onError((e) => window.webContents.send(IPC.chatError, e))
-  harness.start()
-  wireBridgeToClaude(bridge, harness)
+  async function persist(): Promise<void> {
+    state.updatedAt = new Date().toISOString()
+    await wfs.write(SESSION_FILE, JSON.stringify(state, null, 2))
+  }
 
-  // The teach skill has disable-model-invocation: true, so it must be invoked
-  // explicitly. Bootstrap the session once with /teach; the skill then reads the
-  // workspace (MISSION.md, lessons/, learning-records/) and its guidance stays in
-  // context for every later turn and lesson event.
-  let sessionStarted = false
+  let harness: ClaudeHarness
+  function makeHarness(): ClaudeHarness {
+    const h = new ClaudeHarness({
+      spawn: (command, args, options) => spawn(command, args, { cwd: options.cwd }) as unknown as ChildLike,
+      workspaceRoot,
+      extraArgs: buildExtraArgs({
+        mcpConfigPath: mcp.configPath,
+        model: state.model,
+        resumeId: state.sessionId,
+        skillHome: hasSkill ? skillHome : null,
+      }),
+    })
+    h.onEvent((e: ChatEvent) => {
+      if (e.kind === 'system' && e.sessionId && e.sessionId !== state.sessionId) {
+        state.sessionId = e.sessionId
+        void persist()
+      }
+      window.webContents.send(IPC.chatEvent, e)
+    })
+    h.onError((e) => window.webContents.send(IPC.chatError, e))
+    h.start()
+    return h
+  }
+  harness = makeHarness()
+  // Wire bridge prompts to whichever harness is current (survives model switches).
+  wireBridgeToClaude(bridge, { send: (p) => harness.send(p) })
+
+  let sessionStarted = resumedAtLaunch // resumed sessions need no /teach
   ipcMain.on(IPC.startSession, () => {
     if (sessionStarted) return
     sessionStarted = true
     harness.send('/teach')
   })
-
   ipcMain.on(IPC.sendChat, (_e, text: string) => harness.send(text))
+  ipcMain.on(IPC.saveSession, (_e, messages: ChatMessage[]) => {
+    state.messages = messages
+    void persist()
+  })
+  ipcMain.on(IPC.setModel, (_e, model: string) => {
+    if (model === state.model) return
+    state.model = model
+    void persist()
+    // Restart the agent on the same (resumed) session so context is preserved.
+    harness.stop()
+    harness = makeHarness()
+  })
+
   ipcMain.handle(IPC.listLessons, async () => {
-    const names = await new NodeWorkspaceFs(workspaceRoot).list('lessons')
+    const names = await wfs.list('lessons')
     return names.filter((n) => n.endsWith('.html')).sort()
   })
-  ipcMain.handle(IPC.getConfig, (): AppConfig => ({
-    lessonBase: lessonServer.httpBase(),
-    workspaceName: path.basename(workspaceRoot),
-  }))
+  ipcMain.handle(
+    IPC.getConfig,
+    (): AppConfig => ({
+      lessonBase: lessonServer.httpBase(),
+      workspaceName: path.basename(workspaceRoot),
+      model: state.model,
+      models: MODELS,
+      resumed: resumedAtLaunch,
+      messages: state.messages,
+    }),
+  )
 
-  return { lessonServer, mcp, harness, workspaceRoot }
+  return {
+    lessonServer,
+    mcp,
+    stop: () => {
+      harness.stop()
+      void lessonServer.close()
+      void mcp.close()
+    },
+  }
 }
 
 async function createWindow(): Promise<void> {
@@ -95,11 +145,7 @@ async function createWindow(): Promise<void> {
   })
 
   const services = await startServices(window)
-  app.on('before-quit', () => {
-    services.harness.stop()
-    void services.lessonServer.close()
-    void services.mcp.close()
-  })
+  app.on('before-quit', () => services.stop())
 
   if (process.env.ELECTRON_RENDERER_URL) {
     await window.loadURL(process.env.ELECTRON_RENDERER_URL)

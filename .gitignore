@@ -16,6 +16,9 @@ workspaces/
 # Spaced-repetition / runtime state written into workspaces
 reviews.json
 
+# Per-workspace desktop session (session id + transcript) — user data
+.teach-desktop.json
+
 # Secrets — never commit keys or env
 .env
 .env.*
