@@ -60,7 +60,8 @@ onMounted(async () => {
   window.addEventListener('message', (e: MessageEvent) => {
     const d = e.data as { source?: string; kind?: string; section?: string; file?: string } | null
     if (!ws.active || !d || d.source !== 'teach-bridge' || d.kind !== 'navigated' || !d.file) return
-    ws.onNavigated(d.section === 'reference' ? 'reference' : 'lessons', d.file)
+    const section = d.section === 'reference' ? 'reference' : d.section === 'doc' ? 'doc' : 'lessons'
+    ws.onNavigated(section, d.file)
   })
 
   watch(
