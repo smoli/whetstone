@@ -70,6 +70,8 @@ export interface GitInfo {
   branch: string | null
   hasRemote: boolean
   remoteUrl: string | null
+  /** True if the working tree has uncommitted changes (something to commit). */
+  dirty: boolean
 }
 
 /** The typed surface the preload exposes to the renderer as `window.teach`. */

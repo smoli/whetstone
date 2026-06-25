@@ -1,3 +1,8 @@
+/** True if `git status --porcelain` reports any uncommitted change. Pure. */
+export function isDirty(porcelain: string): boolean {
+  return (porcelain || '').split('\n').some((line) => line.trim().length > 0)
+}
+
 /** Map raw `git push` output to a short, user-safe message. Pure + testable. */
 export function pushErrorMessage(out: string): string {
   const o = (out || '').toLowerCase()

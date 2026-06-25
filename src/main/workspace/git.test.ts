@@ -1,5 +1,19 @@
 import { describe, it, expect } from 'vitest'
-import { pushErrorMessage } from './git'
+import { pushErrorMessage, isDirty } from './git'
+
+describe('isDirty', () => {
+  it('is false for a clean working tree', () => {
+    expect(isDirty('')).toBe(false)
+    expect(isDirty('\n')).toBe(false)
+    expect(isDirty('   \n  ')).toBe(false)
+  })
+
+  it('is true when there are staged, unstaged, or untracked changes', () => {
+    expect(isDirty(' M lessons/0001.html\n')).toBe(true)
+    expect(isDirty('?? notes.txt')).toBe(true)
+    expect(isDirty('A  new.md\n M old.md\n')).toBe(true)
+  })
+})
 
 describe('pushErrorMessage', () => {
   it('maps auth failures', () => {

@@ -22,7 +22,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const model = ref('default')
   const models = ref<ModelOption[]>([])
   const session = ref<{ messages: ChatMessage[]; resumed: boolean }>({ messages: [], resumed: false })
-  const git = ref<GitInfo>({ isRepo: false, branch: null, hasRemote: false, remoteUrl: null })
+  const git = ref<GitInfo>({ isRepo: false, branch: null, hasRemote: false, remoteUrl: null, dirty: false })
 
   const currentUrl = computed(() => {
     if (!config.value || !current.value) return null
@@ -59,6 +59,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     await loadLists()
     const added = lessons.value.filter((f) => !prev.has(f))
     if (added.length) navigate({ section: 'lessons', file: added[added.length - 1] })
+    // The agent may have changed files this turn — keep the git dirty state live.
+    git.value = await window.teach.gitInfo()
   }
 
   async function applyConfig(cfg: AppConfig): Promise<void> {

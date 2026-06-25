@@ -42,18 +42,26 @@ async function push(): Promise<void> {
       <span
         v-if="ws.git.branch"
         class="branch"
-      >{{ ws.git.branch }}</span>
+      >
+        <span
+          v-if="ws.git.dirty"
+          class="dirty-dot"
+          title="Uncommitted changes"
+        >●</span>{{ ws.git.branch }}</span>
     </p>
     <input
       v-model="commitMsg"
       class="g-input"
       type="text"
-      placeholder="Commit message…"
+      :disabled="!ws.git.dirty"
+      :placeholder="ws.git.dirty ? 'Commit message…' : 'Nothing to commit'"
       @keydown.enter="commit"
     >
     <div class="g-row">
       <button
         class="g-btn commit"
+        :disabled="!ws.git.dirty"
+        :title="ws.git.dirty ? 'Commit all changes' : 'Nothing to commit'"
         @click="commit"
       >
         Commit
@@ -114,6 +122,12 @@ async function push(): Promise<void> {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.dirty-dot {
+  color: var(--accent);
+  font-size: 0.6rem;
+  margin-right: 0.3rem;
+  vertical-align: middle;
+}
 .g-input {
   font: inherit;
   font-size: 0.78rem;
@@ -124,6 +138,11 @@ async function push(): Promise<void> {
   color: var(--ink);
   width: 100%;
   box-sizing: border-box;
+}
+.g-input:disabled {
+  background: var(--paper);
+  color: var(--ink-soft);
+  cursor: not-allowed;
 }
 .g-row {
   display: flex;
