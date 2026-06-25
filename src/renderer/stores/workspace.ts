@@ -158,9 +158,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     window.teach.revealWorkspace()
   }
 
+  /** Open the currently displayed content in the OS default browser. */
+  function openCurrentInBrowser(): void {
+    if (currentUrl.value) window.teach.openExternal(currentUrl.value)
+  }
+
   return {
     active, recent, config, lessons, references, docs, current, currentUrl, canBack, canForward, model, models, session, git,
     loadLauncher, openFolder, openRecent, newSession, toLauncher, openItem, onNavigated, back, forward,
-    refreshContents, setModel, commit, push, revealWorkspace,
+    refreshContents, setModel, commit, push, revealWorkspace, openCurrentInBrowser,
   }
 })

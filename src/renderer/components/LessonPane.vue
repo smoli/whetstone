@@ -37,6 +37,28 @@ const title = computed(() => (ws.current ? contentLabel(ws.current.file) || ws.c
           >›</span>
         </template>
         <span class="title">{{ title }}</span>
+        <button
+          v-if="ws.currentUrl"
+          class="nav-btn open-btn"
+          title="Open in browser"
+          @click="ws.openCurrentInBrowser()"
+        >
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            <path d="M15 3h6v6" />
+            <path d="M10 14 21 3" />
+          </svg>
+        </button>
       </div>
     </header>
     <iframe
@@ -92,6 +114,16 @@ const title = computed(() => (ws.current ? contentLabel(ws.current.file) || ws.c
 .nav-btn:disabled {
   opacity: 0.4;
   cursor: default;
+}
+.open-btn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+}
+.open-btn:hover {
+  color: var(--accent);
 }
 .ws-name {
   font-family: var(--serif);
