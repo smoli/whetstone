@@ -110,6 +110,12 @@ async function createSession(workspaceRoot: string): Promise<Session> {
     let gotInit = false
     const h = new ClaudeHarness({
       spawn: (command, args, options) => spawn(command, args, { cwd: options.cwd }) as unknown as ChildLike,
+      // Windows: a bare kill() orphans claude's child tree (node, ripgrep, MCP).
+      // taskkill /T reaps the whole tree; other platforms use the default kill().
+      killTree:
+        process.platform === 'win32'
+          ? (pid) => void execFile('taskkill', ['/pid', String(pid), '/T', '/F'], () => {})
+          : undefined,
       workspaceRoot,
       extraArgs: buildExtraArgs({
         mcpConfigPath: mcp.configPath,

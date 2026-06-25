@@ -6,6 +6,7 @@ import ChatPane from './components/ChatPane.vue'
 import Welcome from './components/Welcome.vue'
 import { useChatStore } from './stores/chat'
 import { useWorkspaceStore } from './stores/workspace'
+import { persistableMessages } from '@shared/chat'
 
 const chat = useChatStore()
 const ws = useWorkspaceStore()
@@ -78,7 +79,12 @@ onMounted(async () => {
     () => chat.busy,
     (b) => {
       if (b || !ws.active) return
-      if (chat.messages.length) window.teach.saveSession(JSON.parse(JSON.stringify(toRaw(chat.messages))))
+      // Persist only durable history — transient error banners are stripped so a
+      // momentary failure never replays as stale chat on the next open.
+      if (chat.messages.length) {
+        const durable = persistableMessages(toRaw(chat.messages))
+        window.teach.saveSession(JSON.parse(JSON.stringify(durable)))
+      }
       void ws.refreshContents()
     },
   )

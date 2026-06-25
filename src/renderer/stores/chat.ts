@@ -33,13 +33,16 @@ export const useChatStore = defineStore('chat', () => {
   function applyError(err: ClaudeError): void {
     clearBusy()
     error.value = err
-    messages.value = [...messages.value, { id: nextId(), role: 'system', text: err.message }]
+    // A transient banner: shown live, but stripped before the transcript is
+    // persisted so a momentary failure never replays as stale history.
+    messages.value = [...messages.value, { id: nextId(), role: 'system', text: err.message, transient: true }]
   }
 
   function send(text: string): void {
     const trimmed = text.trim()
     if (!trimmed) return
-    messages.value = [...messages.value, { id: nextId(), role: 'user', text: trimmed }]
+    // Drop any stale error banner — this turn is the retry.
+    messages.value = [...messages.value.filter((m) => !m.transient), { id: nextId(), role: 'user', text: trimmed }]
     error.value = null
     markBusy()
     window.teach.sendChat(trimmed)

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { foldChatEvent, type ChatMessage } from './chat'
+import {
+  foldChatEvent,
+  isAuthErrorText,
+  persistableMessages,
+  AUTH_EXPIRED_MESSAGE,
+  type ChatMessage,
+} from './chat'
 
 let n = 0
 const nextId = () => `m${++n}`
@@ -66,6 +72,11 @@ describe('foldChatEvent', () => {
     expect(msgs[0].text).not.toContain('stack')
   })
 
+  it('marks the error-result system message transient so it is not persisted', () => {
+    const msgs = fold([{ kind: 'result', text: '', isError: true }])
+    expect(msgs[0].transient).toBe(true)
+  })
+
   it('ignores system events', () => {
     const msgs = fold([{ kind: 'system', subtype: 'init' }])
     expect(msgs).toHaveLength(0)
@@ -74,5 +85,40 @@ describe('foldChatEvent', () => {
   it('labels an unknown tool generically', () => {
     const msgs = fold([{ kind: 'tool_use', name: 'mystery_tool', input: {} }])
     expect(msgs[0].text).toContain('mystery_tool')
+  })
+})
+
+describe('isAuthErrorText', () => {
+  it('detects claude authentication failures', () => {
+    expect(isAuthErrorText('Failed to authenticate. API Error: 401 Invalid authentication credentials')).toBe(true)
+    expect(isAuthErrorText('API Error: 401')).toBe(true)
+    expect(isAuthErrorText('invalid authentication credentials')).toBe(true)
+    expect(isAuthErrorText('Unauthorized')).toBe(true)
+  })
+
+  it('does not flag ordinary lesson content', () => {
+    expect(isAuthErrorText('The 401k retirement plan has 400 participants.')).toBe(false)
+    expect(isAuthErrorText('Let me update your lesson.')).toBe(false)
+  })
+
+  it('exposes an actionable, user-safe message', () => {
+    expect(AUTH_EXPIRED_MESSAGE).toMatch(/login/i)
+    expect(AUTH_EXPIRED_MESSAGE).not.toMatch(/401|stack/i)
+  })
+})
+
+describe('persistableMessages', () => {
+  it('drops transient error/system banners', () => {
+    const msgs: ChatMessage[] = [
+      { id: 'm1', role: 'user', text: 'hi' },
+      { id: 'm2', role: 'assistant', text: 'hello' },
+      { id: 'm3', role: 'system', text: 'login expired', transient: true },
+    ]
+    expect(persistableMessages(msgs).map((m) => m.id)).toEqual(['m1', 'm2'])
+  })
+
+  it('keeps a normal transcript intact', () => {
+    const msgs: ChatMessage[] = [{ id: 'm1', role: 'user', text: 'hi' }]
+    expect(persistableMessages(msgs)).toEqual(msgs)
   })
 })

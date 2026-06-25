@@ -16,6 +16,23 @@ export interface ClaudeError {
   message: string
   /** Process exit code, if the failure was a non-zero exit. */
   code?: number
+  /** Coarse cause, so the UI can offer a recoverable, actionable state. */
+  reason?: 'auth' | 'generic'
+}
+
+/** Shown when claude's credentials are rejected — points at the actual remedy. */
+export const AUTH_EXPIRED_MESSAGE =
+  'Your Claude login has expired or is invalid. Run `claude /login` in a terminal, then reopen this workspace.'
+
+/**
+ * True if claude's output signals an authentication failure (e.g. a 401). Used
+ * to convert a raw "401 Invalid authentication credentials" into a typed,
+ * actionable error instead of leaking it into the chat transcript.
+ */
+export function isAuthErrorText(text: string): boolean {
+  return /(?:\bapi error:\s*401\b)|invalid authentication credentials|failed to authenticate|\bunauthorized\b/i.test(
+    text,
+  )
 }
 
 /** A message as shown in the chat pane. */
@@ -29,6 +46,17 @@ export interface ChatMessage {
   count?: number
   /** True while the assistant is still streaming into this message. */
   pending?: boolean
+  /** A transient banner (e.g. an error) shown live but never persisted. */
+  transient?: boolean
+}
+
+/**
+ * The subset of a transcript worth saving to the session file: drops transient
+ * banners (errors, login-expired notices) so a momentary failure never replays
+ * as stale history on the next open.
+ */
+export function persistableMessages(messages: ChatMessage[]): ChatMessage[] {
+  return messages.filter((m) => !m.transient)
 }
 
 /** Human-readable summaries for the agent's bridge tool calls. */
@@ -73,7 +101,10 @@ export function foldChatEvent(
     case 'result': {
       const finalized = finalizePending(messages)
       if (ev.isError) {
-        return [...finalized, { id: nextId(), role: 'system', text: 'The teaching agent reported an error.' }]
+        return [
+          ...finalized,
+          { id: nextId(), role: 'system', text: 'The teaching agent reported an error.', transient: true },
+        ]
       }
       return finalized
     }

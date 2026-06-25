@@ -4,6 +4,7 @@ import type { ChatEvent, ClaudeError } from '@shared/chat'
 
 /** Controllable fake child process. */
 class FakeChild implements ChildLike {
+  pid = 4242
   stdinWrites: string[] = []
   killed = false
   private handlers: Record<string, ((arg: never) => void)[]> = {}
@@ -26,6 +27,9 @@ class FakeChild implements ChildLike {
 
   emitStdout(chunk: string) {
     this.stdoutData.forEach((cb) => cb(chunk))
+  }
+  emitStderr(chunk: string) {
+    this.stderrData.forEach((cb) => cb(chunk))
   }
   emitExit(code: number | null) {
     ;(this.handlers.exit ?? []).forEach((cb) => (cb as (c: number | null) => void)(code))
@@ -128,6 +132,98 @@ describe('ClaudeHarness errors (never raw)', () => {
     child.emitExit(0)
     expect(errors).toHaveLength(0)
     expect(closed).toBe(true)
+  })
+})
+
+describe('ClaudeHarness auth failures', () => {
+  const authText = 'Failed to authenticate. API Error: 401 Invalid authentication credentials'
+
+  it('converts a 401 in assistant text into a typed auth error, not a chat message', () => {
+    const h = makeHarness()
+    const events: ChatEvent[] = []
+    const errors: ClaudeError[] = []
+    h.onEvent((e) => events.push(e))
+    h.onError((e) => errors.push(e))
+    h.start()
+    const line = JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: authText }] } })
+    child.emitStdout(line + '\n')
+    expect(events).toHaveLength(0) // raw 401 text never reaches the transcript
+    expect(errors).toHaveLength(1)
+    expect(errors[0].reason).toBe('auth')
+    expect(errors[0].message).not.toContain('401')
+  })
+
+  it('suppresses the trailing error-result after an auth failure (no duplicate)', () => {
+    const h = makeHarness()
+    const events: ChatEvent[] = []
+    const errors: ClaudeError[] = []
+    h.onEvent((e) => events.push(e))
+    h.onError((e) => errors.push(e))
+    h.start()
+    const assistant = JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: authText }] } })
+    const result = JSON.stringify({ type: 'result', is_error: true, result: '' })
+    child.emitStdout(assistant + '\n' + result + '\n')
+    expect(events).toHaveLength(0)
+    expect(errors).toHaveLength(1)
+  })
+
+  it('still forwards an ordinary (non-auth) error result', () => {
+    const h = makeHarness()
+    const events: ChatEvent[] = []
+    h.onEvent((e) => events.push(e))
+    h.start()
+    child.emitStdout(JSON.stringify({ type: 'result', is_error: true, result: 'tool blew up' }) + '\n')
+    expect(events).toEqual([{ kind: 'result', text: 'tool blew up', isError: true }])
+  })
+
+  it('detects an auth failure emitted on stderr', () => {
+    const h = makeHarness()
+    const errors: ClaudeError[] = []
+    h.onError((e) => errors.push(e))
+    h.start()
+    child.emitStderr(authText)
+    expect(errors).toHaveLength(1)
+    expect(errors[0].reason).toBe('auth')
+  })
+
+  it('does not emit a second generic error when the process then exits non-zero', () => {
+    const h = makeHarness()
+    const errors: ClaudeError[] = []
+    h.onError((e) => errors.push(e))
+    h.start()
+    child.emitStderr(authText)
+    child.emitExit(1)
+    expect(errors).toHaveLength(1)
+    expect(errors[0].reason).toBe('auth')
+  })
+
+  it('re-arms auth reporting on the next user turn', () => {
+    const h = makeHarness()
+    const errors: ClaudeError[] = []
+    h.onError((e) => errors.push(e))
+    h.start()
+    child.emitStderr(authText)
+    h.send('retry after re-login')
+    child.emitStderr(authText)
+    expect(errors).toHaveLength(2)
+  })
+})
+
+describe('ClaudeHarness.stop', () => {
+  it('kills the whole process tree via the injected killer (Windows leaks orphans otherwise)', () => {
+    const killed: number[] = []
+    const h = new ClaudeHarness({ spawn, workspaceRoot: '/ws', killTree: (pid) => void killed.push(pid) })
+    h.start()
+    h.stop()
+    expect(killed).toEqual([4242])
+    expect(child.killed).toBe(false) // tree-kill replaces the bare kill
+  })
+
+  it('falls back to a bare kill when no tree-killer is provided', () => {
+    const h = makeHarness()
+    h.start()
+    h.stop()
+    expect(child.killed).toBe(true)
   })
 })
 
