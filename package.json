@@ -20,6 +20,9 @@
   "build": {
     "appId": "de.farbspender.whetstone",
     "productName": "Whetstone",
+    "publish": {
+      "provider": "github"
+    },
     "directories": {
       "output": "release"
     },

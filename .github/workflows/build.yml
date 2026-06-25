@@ -1,0 +1,46 @@
+name: build
+
+# Cut a release by pushing a version tag, e.g.:
+#   npm version 0.1.0   # (or edit package.json) then:
+#   git tag v0.1.0 && git push origin v0.1.0
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # create the GitHub Release and upload assets
+
+jobs:
+  dist:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build & publish to GitHub Releases
+        run: npm run build && npx electron-builder --publish always
+        env:
+          # electron-builder publishes to this repo's Releases (draft) for the tag.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # --- Code signing (optional; unsigned until these secrets are set) ---
+          # macOS Developer ID + notarization:
+          # CSC_LINK: ${{ secrets.MAC_CSC_LINK }}            # base64 of your .p12
+          # CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Windows Authenticode:
+          # CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          # CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
