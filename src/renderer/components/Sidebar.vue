@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useWorkspaceStore } from '../stores/workspace'
+import GitControls from './GitControls.vue'
 import { lessonNumber, contentLabel } from '@shared/links'
 
 import type { ContentSection } from '../stores/workspace'
@@ -133,6 +134,8 @@ function docLabel(file: string): string {
         {{ lessonNumber(file) || '•' }}
       </button>
     </div>
+
+    <GitControls v-if="!collapsed && ws.git.isRepo" />
 
     <button
       class="home"
