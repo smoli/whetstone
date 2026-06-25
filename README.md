@@ -37,9 +37,7 @@ You'll need [Claude Code](https://code.claude.com) installed and on your `PATH`
 ```bash
 npm install      # installs deps incl. the Electron runtime
 npm run dev      # launches the app
-```
-
-On launch you get a **Welcome** screen:
+```On launch you get a **Welcome** screen:
 
 - **Open a folder…** — point Whetstone at any existing teaching-session folder.
 - **New session** — type what you want to learn; Whetstone scaffolds a
