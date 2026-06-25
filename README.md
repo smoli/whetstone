@@ -127,9 +127,14 @@ unpacked app for quick checks. The `teach` skill (`.claude/skills`) and shared
 `process.resourcesPath` when packaged (and from the repo in dev) — so new-session
 scaffolding works in a built app, no git or network required.
 
-Not yet configured: a **custom app icon** (the default Electron icon is used) and
-**code signing / notarization** (set up signing identities for distribution
-outside your own machine — see <https://electron.build/code-signing>).
+The app **icon** lives in `build/` (`icon.svg` is the source; `icon.icns` /
+`icon.png` are generated and picked up automatically by electron-builder). To
+regenerate after editing the SVG: `npx electron scripts/render-icon.cjs` rasterizes
+it, then rebuild the `.icns` with `sips` + `iconutil`.
+
+Not yet configured: **code signing / notarization** — set up signing identities
+before distributing outside your own machine
+(see <https://electron.build/code-signing>).
 
 ## Credit
 

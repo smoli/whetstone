@@ -1,0 +1,52 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b322b"/>
+      <stop offset="1" stop-color="#1d1814"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.46" r="0.5">
+      <stop offset="0" stop-color="#ff9a4d" stop-opacity="0.55"/>
+      <stop offset="0.55" stop-color="#d4622c" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#d4622c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe1b8"/>
+      <stop offset="0.45" stop-color="#f6a14a"/>
+      <stop offset="1" stop-color="#b5532a"/>
+    </linearGradient>
+    <linearGradient id="stone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d7c9b3"/>
+      <stop offset="0.5" stop-color="#a89a85"/>
+      <stop offset="1" stop-color="#6f6353"/>
+    </linearGradient>
+    <linearGradient id="stoneTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f3ead9"/>
+      <stop offset="1" stop-color="#cbbca4"/>
+    </linearGradient>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+
+  <!-- rounded-square app tile -->
+  <rect x="100" y="100" width="824" height="824" rx="184" fill="url(#bg)"/>
+  <!-- top sheen -->
+  <rect x="100" y="100" width="824" height="412" rx="184" fill="#ffffff" opacity="0.04"/>
+
+  <!-- ember glow -->
+  <circle cx="512" cy="452" r="330" fill="url(#glow)"/>
+
+  <!-- whetstone bar -->
+  <g transform="rotate(-7 512 772)">
+    <rect x="214" y="726" width="596" height="96" rx="48" fill="url(#stone)"/>
+    <rect x="214" y="726" width="596" height="34" rx="17" fill="url(#stoneTop)" opacity="0.9"/>
+  </g>
+
+  <!-- secondary sparks -->
+  <path d="M740 232 Q752 290 808 302 Q752 314 740 372 Q728 314 672 302 Q728 290 740 232 Z" fill="#f3a85f" opacity="0.85"/>
+  <path d="M322 318 Q330 356 370 364 Q330 372 322 410 Q314 372 274 364 Q314 356 322 318 Z" fill="#e8954c" opacity="0.7"/>
+
+  <!-- hero ember sparkle (glow + body) -->
+  <path d="M512 190 Q556 406 772 450 Q556 494 512 710 Q468 494 252 450 Q468 406 512 190 Z" fill="#ff8f3c" opacity="0.55" filter="url(#soft)"/>
+  <path d="M512 190 Q556 406 772 450 Q556 494 512 710 Q468 494 252 450 Q468 406 512 190 Z" fill="url(#spark)"/>
+</svg>
