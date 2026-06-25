@@ -115,9 +115,9 @@ const close = (): void => window.teach.closeWindow()
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  height: 2rem;
+  height: 2.3rem;
   flex: 0 0 auto;
-  background: #14100d;
+  background: var(--ink);
   /* The whole bar drags the window; interactive bits opt out below. */
   -webkit-app-region: drag;
   user-select: none;
@@ -128,9 +128,9 @@ const close = (): void => window.teach.closeWindow()
   right: 0;
   text-align: center;
   font-family: var(--serif);
-  font-size: 0.85rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--paper);
   letter-spacing: 0.02em;
   pointer-events: none;
 }
@@ -147,7 +147,7 @@ const close = (): void => window.teach.closeWindow()
   justify-content: center;
   border: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--paper);
   cursor: pointer;
 }
 .ctl:hover {
