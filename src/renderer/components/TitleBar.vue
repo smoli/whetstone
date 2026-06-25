@@ -15,99 +15,16 @@ const close = (): void => window.teach.closeWindow()
 </script>
 
 <template>
-  <header class="titlebar">
-    <div
-      class="brand"
-      @dblclick="toggleMaximize"
-    >
-      <svg
-        class="logo"
-        viewBox="0 0 1024 1024"
-        width="18"
-        height="18"
-        aria-hidden="true"
-      >
-        <defs>
-          <linearGradient
-            id="tb-bg"
-            x1="0"
-            y1="0"
-            x2="0"
-            y2="1"
-          >
-            <stop
-              offset="0"
-              stop-color="#3b322b"
-            />
-            <stop
-              offset="1"
-              stop-color="#1d1814"
-            />
-          </linearGradient>
-          <linearGradient
-            id="tb-spark"
-            x1="0"
-            y1="0"
-            x2="0"
-            y2="1"
-          >
-            <stop
-              offset="0"
-              stop-color="#ffe1b8"
-            />
-            <stop
-              offset="0.45"
-              stop-color="#f6a14a"
-            />
-            <stop
-              offset="1"
-              stop-color="#b5532a"
-            />
-          </linearGradient>
-          <linearGradient
-            id="tb-stone"
-            x1="0"
-            y1="0"
-            x2="0"
-            y2="1"
-          >
-            <stop
-              offset="0"
-              stop-color="#d7c9b3"
-            />
-            <stop
-              offset="1"
-              stop-color="#6f6353"
-            />
-          </linearGradient>
-        </defs>
-        <rect
-          x="100"
-          y="100"
-          width="824"
-          height="824"
-          rx="184"
-          fill="url(#tb-bg)"
-        />
-        <g transform="rotate(-7 512 772)">
-          <rect
-            x="214"
-            y="726"
-            width="596"
-            height="96"
-            rx="48"
-            fill="url(#tb-stone)"
-          />
-        </g>
-        <path
-          d="M512 190 Q556 406 772 450 Q556 494 512 710 Q468 494 252 450 Q468 406 512 190 Z"
-          fill="url(#tb-spark)"
-        />
-      </svg>
-      <span class="name">Whetstone</span>
-    </div>
+  <header
+    class="titlebar"
+    @dblclick="toggleMaximize"
+  >
+    <span class="name">Whetstone</span>
 
-    <div class="controls">
+    <div
+      class="controls"
+      @dblclick.stop
+    >
       <button
         class="ctl"
         title="Minimize"
@@ -194,33 +111,28 @@ const close = (): void => window.teach.closeWindow()
 
 <style scoped>
 .titlebar {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   height: 2rem;
   flex: 0 0 auto;
-  background: var(--paper-card);
-  border-bottom: 1px solid var(--rule);
+  background: #14100d;
   /* The whole bar drags the window; interactive bits opt out below. */
   -webkit-app-region: drag;
   user-select: none;
 }
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding-left: 0.6rem;
-}
-.logo {
-  display: block;
-  border-radius: 4px;
-}
 .name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
   font-family: var(--serif);
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--ink);
-  letter-spacing: 0.01em;
+  color: #fff;
+  letter-spacing: 0.02em;
+  pointer-events: none;
 }
 .controls {
   display: flex;
@@ -235,12 +147,12 @@ const close = (): void => window.teach.closeWindow()
   justify-content: center;
   border: 0;
   background: transparent;
-  color: var(--ink-soft);
+  color: rgba(255, 255, 255, 0.72);
   cursor: pointer;
 }
 .ctl:hover {
-  background: #e7ddcb;
-  color: var(--ink);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 .ctl.close:hover {
   background: var(--bad);
