@@ -283,7 +283,7 @@ function registerIpc(): void {
           return { path: p, name: path.basename(p), subtitle, openedAt: appState.openedAt[p] }
         }),
     )
-    return { recent, hasWorkspace: !!session }
+    return { recent, hasWorkspace: !!session, version: app.getVersion() }
   })
 
   ipcMain.handle(IPC.openFolder, async (): Promise<AppConfig | null> => {

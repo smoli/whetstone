@@ -23,6 +23,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const models = ref<ModelOption[]>([])
   const session = ref<{ messages: ChatMessage[]; resumed: boolean }>({ messages: [], resumed: false })
   const git = ref<GitInfo>({ isRepo: false, branch: null, hasRemote: false, remoteUrl: null, dirty: false })
+  const version = ref('')
 
   const currentUrl = computed(() => {
     if (!config.value || !current.value) return null
@@ -86,6 +87,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function loadLauncher(): Promise<void> {
     const l = await window.teach.getLauncher()
     recent.value = l.recent
+    version.value = l.version
     if (l.hasWorkspace) {
       const cfg = await window.teach.getConfig()
       if (cfg) await applyConfig(cfg)
@@ -166,7 +168,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   return {
-    active, recent, config, lessons, references, docs, current, currentUrl, canBack, canForward, model, models, session, git,
+    active, recent, config, lessons, references, docs, current, currentUrl, canBack, canForward, model, models, session, git, version,
     loadLauncher, openFolder, openRecent, newSession, toLauncher, openItem, onNavigated, back, forward,
     refreshContents, setModel, commit, push, revealWorkspace, openCurrentInBrowser,
   }

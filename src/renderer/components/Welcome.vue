@@ -41,6 +41,10 @@ function openCredit(): void {
     <div class="panel">
       <p class="eyebrow">
         Whetstone
+        <span
+          v-if="ws.version"
+          class="version"
+        >v{{ ws.version }}</span>
       </p>
       <h1>Sharpen what you know</h1>
 
@@ -130,6 +134,12 @@ function openCredit(): void {
   color: var(--accent);
   font-weight: 600;
   margin: 0 0 0.4rem;
+}
+.version {
+  margin-left: 0.5rem;
+  color: var(--ink-soft);
+  font-weight: 500;
+  letter-spacing: 0.08em;
 }
 h1 {
   font-family: var(--serif);

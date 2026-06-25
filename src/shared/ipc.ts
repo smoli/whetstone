@@ -61,6 +61,8 @@ export interface LauncherState {
   recent: RecentWorkspace[]
   /** True if a workspace is already open (e.g. restored on launch). */
   hasWorkspace: boolean
+  /** App version (from package.json), e.g. "0.2.0". */
+  version: string
 }
 
 export interface GitResult {
