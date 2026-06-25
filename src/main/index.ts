@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from 'electron'
 import { spawn, execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { existsSync, promises as fsp } from 'node:fs'
@@ -371,19 +371,36 @@ function registerIpc(): void {
     if (session) void shell.openPath(session.workspaceRoot)
   })
   ipcMain.handle(IPC.getConfig, () => session?.getConfig() ?? null)
+
+  // Custom titlebar window controls (the window is frameless).
+  ipcMain.on(IPC.winMinimize, () => mainWindow?.minimize())
+  ipcMain.on(IPC.winMaximizeToggle, () => {
+    if (!mainWindow) return
+    if (mainWindow.isMaximized()) mainWindow.unmaximize()
+    else mainWindow.maximize()
+  })
+  ipcMain.on(IPC.winClose, () => mainWindow?.close())
 }
 
 async function createWindow(): Promise<void> {
+  // No native application/menu bar — the app uses its own custom titlebar.
+  Menu.setApplicationMenu(null)
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     title: 'Whetstone',
+    icon: path.join(__dirname, '../../build/icon.png'),
+    frame: false,
+    backgroundColor: '#f6f0e6',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.mjs'),
       contextIsolation: true,
       sandbox: false,
     },
   })
+  // Tell the renderer when to swap the maximize/restore glyph.
+  mainWindow.on('maximize', () => mainWindow?.webContents.send(IPC.winMaximizedChanged, true))
+  mainWindow.on('unmaximize', () => mainWindow?.webContents.send(IPC.winMaximizedChanged, false))
   registerIpc()
 
   // External links in lesson/reference pages (rendered in an iframe) open in the

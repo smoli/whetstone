@@ -21,6 +21,10 @@ export const IPC = {
   gitCommit: 'teach:gitCommit',
   gitInfo: 'teach:gitInfo',
   gitPush: 'teach:gitPush',
+  winMinimize: 'teach:winMinimize',
+  winMaximizeToggle: 'teach:winMaximizeToggle',
+  winClose: 'teach:winClose',
+  winMaximizedChanged: 'teach:winMaximizedChanged',
 } as const
 
 export interface ModelOption {
@@ -111,6 +115,13 @@ export interface TeachApi {
   gitInfo(): Promise<GitInfo>
   /** Push the active workspace; sets 'origin' to remoteUrl first if given. */
   gitPush(remoteUrl: string | null): Promise<GitResult>
+  // ── custom (frameless) window controls ──
+  minimizeWindow(): void
+  /** Toggle maximize/restore of the main window. */
+  toggleMaximizeWindow(): void
+  closeWindow(): void
+  /** Subscribe to maximize/restore changes (to swap the maximize/restore icon). */
+  onMaximizeChange(cb: (maximized: boolean) => void): () => void
 }
 
 declare global {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch, toRaw } from 'vue'
+import TitleBar from './components/TitleBar.vue'
 import Sidebar from './components/Sidebar.vue'
 import LessonPane from './components/LessonPane.vue'
 import ChatPane from './components/ChatPane.vue'
@@ -99,31 +100,37 @@ onMounted(async () => {
 </script>
 
 <template>
-  <Welcome v-if="!ws.active" />
-  <main
-    v-else
-    class="app"
-    :class="{ dragging }"
-  >
-    <Sidebar
-      :collapsed="sidebarCollapsed"
-      @toggle="toggleSidebar"
-      @sessions="ws.toLauncher()"
+  <div class="window">
+    <TitleBar />
+    <Welcome
+      v-if="!ws.active"
+      class="view"
     />
-    <LessonPane
-      class="pane pane--content"
-      :sidebar-collapsed="sidebarCollapsed"
-    />
-    <div
-      class="splitter"
+    <main
+      v-else
+      class="app view"
       :class="{ dragging }"
-      @pointerdown="startDrag"
-    />
-    <ChatPane
-      class="pane pane--chat"
-      :style="{ width: chatWidth + 'px' }"
-    />
-  </main>
+    >
+      <Sidebar
+        :collapsed="sidebarCollapsed"
+        @toggle="toggleSidebar"
+        @sessions="ws.toLauncher()"
+      />
+      <LessonPane
+        class="pane pane--content"
+        :sidebar-collapsed="sidebarCollapsed"
+      />
+      <div
+        class="splitter"
+        :class="{ dragging }"
+        @pointerdown="startDrag"
+      />
+      <ChatPane
+        class="pane pane--chat"
+        :style="{ width: chatWidth + 'px' }"
+      />
+    </main>
+  </div>
 </template>
 
 <style>
@@ -153,9 +160,18 @@ body {
   color: var(--ink);
   background: var(--paper);
 }
+.window {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+.view {
+  flex: 1;
+  min-height: 0;
+}
 .app {
   display: flex;
-  height: 100vh;
   overflow: hidden;
 }
 .pane {

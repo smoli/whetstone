@@ -115,7 +115,7 @@ function openCredit(): void {
 
 <style scoped>
 .welcome {
-  height: 100vh;
+  height: 100%;
   display: grid;
   place-items: center;
   background: var(--paper);

@@ -31,6 +31,14 @@ const api: TeachApi = {
   gitCommit: (message: string) => ipcRenderer.invoke(IPC.gitCommit, message) as Promise<GitResult>,
   gitInfo: () => ipcRenderer.invoke(IPC.gitInfo) as Promise<GitInfo>,
   gitPush: (remoteUrl: string | null) => ipcRenderer.invoke(IPC.gitPush, remoteUrl) as Promise<GitResult>,
+  minimizeWindow: () => ipcRenderer.send(IPC.winMinimize),
+  toggleMaximizeWindow: () => ipcRenderer.send(IPC.winMaximizeToggle),
+  closeWindow: () => ipcRenderer.send(IPC.winClose),
+  onMaximizeChange: (cb) => {
+    const listener = (_e: unknown, maximized: boolean) => cb(maximized)
+    ipcRenderer.on(IPC.winMaximizedChanged, listener)
+    return () => ipcRenderer.removeListener(IPC.winMaximizedChanged, listener)
+  },
 }
 
 contextBridge.exposeInMainWorld('teach', api)
