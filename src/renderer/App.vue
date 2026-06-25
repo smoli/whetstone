@@ -7,12 +7,13 @@ import Welcome from './components/Welcome.vue'
 import { useChatStore } from './stores/chat'
 import { useWorkspaceStore } from './stores/workspace'
 import { persistableMessages } from '@shared/chat'
+import { chatWidthFromPointer, CHAT_WIDTH_MIN, CHAT_WIDTH_MAX, CHAT_WIDTH_DEFAULT } from '@shared/layout'
 
 const chat = useChatStore()
 const ws = useWorkspaceStore()
 
 // Resizable chat sidebar (persisted).
-const chatWidth = ref(loadNum('teach.chatWidth', 420, 320, 900))
+const chatWidth = ref(loadNum('teach.chatWidth', CHAT_WIDTH_DEFAULT, CHAT_WIDTH_MIN, CHAT_WIDTH_MAX))
 const dragging = ref(false)
 // Collapsible left sidebar (persisted).
 const sidebarCollapsed = ref(localStorage.getItem('teach.sidebarCollapsed') === '1')
@@ -27,19 +28,25 @@ function toggleSidebar(): void {
   localStorage.setItem('teach.sidebarCollapsed', sidebarCollapsed.value ? '1' : '0')
 }
 
-function startDrag(): void {
+function startDrag(ev: PointerEvent): void {
   dragging.value = true
-  const move = (ev: PointerEvent) => {
-    chatWidth.value = Math.min(900, Math.max(320, window.innerWidth - ev.clientX))
+  // Capture the pointer on the splitter so move/up keep arriving even when the
+  // cursor crosses the lesson iframe — without capture the iframe swallows them,
+  // stalling the drag and eating the release.
+  const handle = ev.currentTarget as HTMLElement
+  handle.setPointerCapture(ev.pointerId)
+  const move = (e: PointerEvent) => {
+    chatWidth.value = chatWidthFromPointer(window.innerWidth, e.clientX)
   }
-  const up = () => {
+  const up = (e: PointerEvent) => {
     dragging.value = false
-    window.removeEventListener('pointermove', move)
-    window.removeEventListener('pointerup', up)
+    handle.releasePointerCapture(e.pointerId)
+    handle.removeEventListener('pointermove', move)
+    handle.removeEventListener('pointerup', up)
     localStorage.setItem('teach.chatWidth', String(chatWidth.value))
   }
-  window.addEventListener('pointermove', move)
-  window.addEventListener('pointerup', up)
+  handle.addEventListener('pointermove', move)
+  handle.addEventListener('pointerup', up)
 }
 
 /** Run after a workspace becomes active (fresh open or restored). */
@@ -96,6 +103,7 @@ onMounted(async () => {
   <main
     v-else
     class="app"
+    :class="{ dragging }"
   >
     <Sidebar
       :collapsed="sidebarCollapsed"
@@ -169,5 +177,10 @@ body {
 .splitter:hover,
 .splitter.dragging {
   background: var(--accent-soft);
+}
+/* While dragging, stop the lesson iframe from intercepting the pointer (hover,
+   text selection) so the resize stays smooth across the whole window. */
+.app.dragging iframe {
+  pointer-events: none;
 }
 </style>
