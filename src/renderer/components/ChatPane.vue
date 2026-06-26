@@ -2,6 +2,7 @@
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { useChatStore } from '../stores/chat'
 import { useWorkspaceStore } from '../stores/workspace'
+import SparkSpinner from './SparkSpinner.vue'
 import { renderMarkdown } from '../markdown'
 import { resolveChatLink } from '@shared/links'
 
@@ -66,11 +67,16 @@ watch(
 <template>
   <section class="chat">
     <header class="chat-head">
-      <span class="eyebrow">Your teacher<span
-        v-if="ws.config?.skillVersion"
-        class="skill-ver"
-        title="Teaching skill version"
-      >v{{ ws.config.skillVersion }}</span></span>
+      <span class="eyebrow">
+        <SparkSpinner
+          :spinning="chat.busy"
+          :size="16"
+          class="teacher-spark"
+        />Your teacher<span
+          v-if="ws.config?.skillVersion"
+          class="skill-ver"
+          title="Teaching skill version"
+        >v{{ ws.config.skillVersion }}</span></span>
       <select
         class="model-select"
         :value="ws.model"
@@ -123,7 +129,10 @@ watch(
         v-if="chat.busy"
         class="thinking"
       >
-        <span class="dot" /> Thinking… <span class="secs">{{ elapsed }}s</span>
+        <SparkSpinner
+          :spinning="true"
+          :size="15"
+        /> Thinking… <span class="secs">{{ elapsed }}s</span>
       </div>
     </div>
 
@@ -177,6 +186,9 @@ watch(
   cursor: pointer;
 }
 .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-family: var(--sans);
   font-size: 0.7rem;
   letter-spacing: 0.16em;
@@ -185,7 +197,6 @@ watch(
   font-weight: 600;
 }
 .skill-ver {
-  margin-left: 0.5rem;
   color: var(--ink-soft);
   font-weight: 500;
   letter-spacing: 0.06em;
@@ -256,17 +267,6 @@ watch(
 .thinking .secs {
   font-variant-numeric: tabular-nums;
   color: var(--accent);
-}
-.thinking .dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent);
-  animation: pulse 1s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 0.3; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.1); }
 }
 
 /* rendered markdown */
