@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { AppConfig, ModelOption, RecentWorkspace, GitResult, GitInfo } from '@shared/ipc'
+import type { AppConfig, ModelOption, RecentWorkspace, GitResult, GitInfo, SkillUpdateInfo } from '@shared/ipc'
 import type { ChatMessage } from '@shared/chat'
 
 export type ContentSection = 'lessons' | 'reference' | 'doc'
@@ -24,6 +24,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const session = ref<{ messages: ChatMessage[]; resumed: boolean }>({ messages: [], resumed: false })
   const git = ref<GitInfo>({ isRepo: false, branch: null, hasRemote: false, remoteUrl: null, dirty: false })
   const version = ref('')
+  const skillUpdate = ref<SkillUpdateInfo | null>(null)
 
   const currentUrl = computed(() => {
     if (!config.value || !current.value) return null
@@ -80,6 +81,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         ? { section: 'reference' as const, file: references.value[0] }
         : null
     if (initial) navigate(initial)
+    skillUpdate.value = cfg.skillUpdate
     git.value = await window.teach.gitInfo()
     active.value = true
   }
@@ -167,9 +169,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (currentUrl.value) window.teach.openExternal(currentUrl.value)
   }
 
+  /** Overwrite the workspace's teach skill with the app's bundled copy. */
+  async function updateSkill(): Promise<void> {
+    skillUpdate.value = await window.teach.updateSkill()
+  }
+
+  /** Dismiss the update offer for this session without changing the skill. */
+  function dismissSkillUpdate(): void {
+    if (skillUpdate.value) skillUpdate.value = { ...skillUpdate.value, available: false }
+  }
+
   return {
-    active, recent, config, lessons, references, docs, current, currentUrl, canBack, canForward, model, models, session, git, version,
+    active, recent, config, lessons, references, docs, current, currentUrl, canBack, canForward, model, models, session, git, version, skillUpdate,
     loadLauncher, openFolder, openRecent, newSession, toLauncher, openItem, onNavigated, back, forward,
-    refreshContents, setModel, commit, push, revealWorkspace, openCurrentInBrowser,
+    refreshContents, setModel, commit, push, revealWorkspace, openCurrentInBrowser, updateSkill, dismissSkillUpdate,
   }
 })

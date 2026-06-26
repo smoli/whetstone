@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch, toRaw } from 'vue'
 import TitleBar from './components/TitleBar.vue'
+import SkillUpdateDialog from './components/SkillUpdateDialog.vue'
 import Sidebar from './components/Sidebar.vue'
 import LessonPane from './components/LessonPane.vue'
 import ChatPane from './components/ChatPane.vue'
@@ -102,6 +103,7 @@ onMounted(async () => {
 <template>
   <div class="window">
     <TitleBar />
+    <SkillUpdateDialog />
     <Welcome
       v-if="!ws.active"
       class="view"

@@ -16,7 +16,8 @@ import { extractMissionTitle } from './workspace/mission'
 import { pushErrorMessage, isDirty } from './workspace/git'
 import { startMcpHttp } from './mcp/mcp-http'
 import { isExternalUrl } from '@shared/links'
-import { IPC, type AppConfig, type GitResult, type GitInfo, type LauncherState } from '@shared/ipc'
+import { IPC, type AppConfig, type GitResult, type GitInfo, type LauncherState, type SkillUpdateInfo } from '@shared/ipc'
+import { readSkillVersion, skillUpdateAvailable } from '@shared/skill-version'
 import type { ChatEvent, ChatMessage } from '@shared/chat'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -71,6 +72,7 @@ interface Session {
   gitCommit(message: string): Promise<GitResult>
   gitInfo(): Promise<GitInfo>
   gitPush(remoteUrl: string | null): Promise<GitResult>
+  updateSkill(): Promise<SkillUpdateInfo>
   stop(): void
 }
 
@@ -82,10 +84,28 @@ async function createSession(workspaceRoot: string): Promise<Session> {
   const mcp = await startMcpHttp(bridge)
 
   // Use the workspace's own skill if present; otherwise lend the app's via --add-dir.
-  const ownsSkill = existsSync(path.join(workspaceRoot, '.claude', 'skills', 'teach', 'SKILL.md'))
+  const wsSkillFile = path.join(workspaceRoot, '.claude', 'skills', 'teach', 'SKILL.md')
+  const ownsSkill = existsSync(wsSkillFile)
   const skillHome = existsSync(path.join(resourceBase, '.claude', 'skills', 'teach', 'SKILL.md'))
     ? resourceBase
     : null
+
+  const readVersion = async (abs: string): Promise<string | null> => {
+    try {
+      return readSkillVersion(await fsp.readFile(abs, 'utf8'))
+    } catch {
+      return null
+    }
+  }
+  // A workspace that owns a skill copy can fall behind the app's bundled skill.
+  // (No copy → it borrows the app's latest via --add-dir, so there's nothing to update.)
+  async function computeSkillUpdate(): Promise<SkillUpdateInfo | null> {
+    if (!existsSync(wsSkillFile) || !skillHome) return null
+    const bundledVersion = await readVersion(path.join(skillSource, 'SKILL.md'))
+    const workspaceVersion = await readVersion(wsSkillFile)
+    return { available: skillUpdateAvailable(bundledVersion, workspaceVersion), bundledVersion, workspaceVersion }
+  }
+  let skillUpdate = await computeSkillUpdate()
 
   const persisted = parseSessionFile(await wfs.read(SESSION_FILE))
   const resumedAtLaunch = !!persisted?.sessionId
@@ -166,6 +186,7 @@ async function createSession(workspaceRoot: string): Promise<Session> {
       models: MODELS,
       resumed: resumedAtLaunch,
       messages: state.messages,
+      skillUpdate,
     }),
     sendChat: (text) => harness.send(text),
     startSession: () => {
@@ -243,6 +264,20 @@ async function createSession(workspaceRoot: string): Promise<Session> {
         const e = err as { stdout?: string; stderr?: string }
         return { ok: false, message: pushErrorMessage((e.stderr ?? '') + (e.stdout ?? '')) }
       }
+    },
+    updateSkill: async (): Promise<SkillUpdateInfo> => {
+      const dest = path.join(workspaceRoot, '.claude', 'skills', 'teach')
+      if (skillHome) {
+        // Replace the workspace copy wholesale so files removed upstream don't linger.
+        await fsp.rm(dest, { recursive: true, force: true })
+        await fsp.cp(skillSource, dest, { recursive: true })
+      }
+      skillUpdate = (await computeSkillUpdate()) ?? {
+        available: false,
+        bundledVersion: null,
+        workspaceVersion: null,
+      }
+      return skillUpdate
     },
     stop: () => {
       stopping = true
@@ -355,6 +390,10 @@ function registerIpc(): void {
   ipcMain.handle(IPC.gitPush, (_e, remoteUrl: string | null): Promise<GitResult> => {
     if (!session) return Promise.resolve({ ok: false, message: 'No workspace open.' })
     return session.gitPush(remoteUrl)
+  })
+  ipcMain.handle(IPC.updateSkill, (): Promise<SkillUpdateInfo> => {
+    if (!session) return Promise.resolve({ available: false, bundledVersion: null, workspaceVersion: null })
+    return session.updateSkill()
   })
 
   ipcMain.on(IPC.startSession, () => session?.startSession())

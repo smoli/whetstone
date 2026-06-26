@@ -1,5 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { IPC, type TeachApi, type AppConfig, type LauncherState, type GitResult, type GitInfo } from '@shared/ipc'
+import {
+  IPC,
+  type TeachApi,
+  type AppConfig,
+  type LauncherState,
+  type GitResult,
+  type GitInfo,
+  type SkillUpdateInfo,
+} from '@shared/ipc'
 import type { ChatEvent, ClaudeError, ChatMessage } from '@shared/chat'
 
 const api: TeachApi = {
@@ -31,6 +39,7 @@ const api: TeachApi = {
   gitCommit: (message: string) => ipcRenderer.invoke(IPC.gitCommit, message) as Promise<GitResult>,
   gitInfo: () => ipcRenderer.invoke(IPC.gitInfo) as Promise<GitInfo>,
   gitPush: (remoteUrl: string | null) => ipcRenderer.invoke(IPC.gitPush, remoteUrl) as Promise<GitResult>,
+  updateSkill: () => ipcRenderer.invoke(IPC.updateSkill) as Promise<SkillUpdateInfo>,
   minimizeWindow: () => ipcRenderer.send(IPC.winMinimize),
   toggleMaximizeWindow: () => ipcRenderer.send(IPC.winMaximizeToggle),
   closeWindow: () => ipcRenderer.send(IPC.winClose),

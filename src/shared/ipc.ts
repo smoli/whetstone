@@ -21,6 +21,7 @@ export const IPC = {
   gitCommit: 'teach:gitCommit',
   gitInfo: 'teach:gitInfo',
   gitPush: 'teach:gitPush',
+  updateSkill: 'teach:updateSkill',
   winMinimize: 'teach:winMinimize',
   winMaximizeToggle: 'teach:winMaximizeToggle',
   winClose: 'teach:winClose',
@@ -46,6 +47,18 @@ export interface AppConfig {
   resumed: boolean
   /** Transcript restored from the prior session, if any. */
   messages: ChatMessage[]
+  /** Skill-update offer when the bundled teach skill is newer than the workspace's copy. */
+  skillUpdate: SkillUpdateInfo | null
+}
+
+/** State of the workspace's teach-skill copy vs the app's bundled version. */
+export interface SkillUpdateInfo {
+  /** True when the bundled skill is newer and the workspace owns a copy to update. */
+  available: boolean
+  /** Version bundled in the app (null if unversioned). */
+  bundledVersion: string | null
+  /** Version in the workspace's copy (null if unversioned / absent). */
+  workspaceVersion: string | null
 }
 
 export interface RecentWorkspace {
@@ -117,6 +130,8 @@ export interface TeachApi {
   gitInfo(): Promise<GitInfo>
   /** Push the active workspace; sets 'origin' to remoteUrl first if given. */
   gitPush(remoteUrl: string | null): Promise<GitResult>
+  /** Overwrite the workspace's teach skill with the app's bundled copy; returns the new state. */
+  updateSkill(): Promise<SkillUpdateInfo>
   // ── custom (frameless) window controls ──
   minimizeWindow(): void
   /** Toggle maximize/restore of the main window. */
