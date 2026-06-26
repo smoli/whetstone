@@ -40,6 +40,7 @@ const api: TeachApi = {
   gitInfo: () => ipcRenderer.invoke(IPC.gitInfo) as Promise<GitInfo>,
   gitPush: (remoteUrl: string | null) => ipcRenderer.invoke(IPC.gitPush, remoteUrl) as Promise<GitResult>,
   updateSkill: () => ipcRenderer.invoke(IPC.updateSkill) as Promise<SkillUpdateInfo>,
+  reopenWorkspace: () => ipcRenderer.invoke(IPC.reopenWorkspace) as Promise<AppConfig | null>,
   minimizeWindow: () => ipcRenderer.send(IPC.winMinimize),
   toggleMaximizeWindow: () => ipcRenderer.send(IPC.winMaximizeToggle),
   closeWindow: () => ipcRenderer.send(IPC.winClose),

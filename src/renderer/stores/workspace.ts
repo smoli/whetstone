@@ -25,6 +25,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const git = ref<GitInfo>({ isRepo: false, branch: null, hasRemote: false, remoteUrl: null, dirty: false })
   const version = ref('')
   const skillUpdate = ref<SkillUpdateInfo | null>(null)
+  /** Bumped when the active workspace's session is recreated in place (e.g. after a skill update). */
+  const reopenNonce = ref(0)
 
   const currentUrl = computed(() => {
     if (!config.value || !current.value) return null
@@ -169,9 +171,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (currentUrl.value) window.teach.openExternal(currentUrl.value)
   }
 
-  /** Overwrite the workspace's teach skill with the app's bundled copy. */
+  /** Overwrite the workspace's teach skill with the bundled copy, then reopen so it takes effect. */
   async function updateSkill(): Promise<void> {
-    skillUpdate.value = await window.teach.updateSkill()
+    await window.teach.updateSkill()
+    const cfg = await window.teach.reopenWorkspace()
+    if (cfg) {
+      await applyConfig(cfg)
+      // Recreated the session in place — tell the app to re-enter (reset chat, resume/bootstrap).
+      reopenNonce.value++
+    }
   }
 
   /** Dismiss the update offer for this session without changing the skill. */
@@ -180,7 +188,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   return {
-    active, recent, config, lessons, references, docs, current, currentUrl, canBack, canForward, model, models, session, git, version, skillUpdate,
+    active, recent, config, lessons, references, docs, current, currentUrl, canBack, canForward, model, models, session, git, version, skillUpdate, reopenNonce,
     loadLauncher, openFolder, openRecent, newSession, toLauncher, openItem, onNavigated, back, forward,
     refreshContents, setModel, commit, push, revealWorkspace, openCurrentInBrowser, updateSkill, dismissSkillUpdate,
   }

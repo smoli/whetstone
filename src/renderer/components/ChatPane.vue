@@ -66,7 +66,11 @@ watch(
 <template>
   <section class="chat">
     <header class="chat-head">
-      <span class="eyebrow">Your teacher</span>
+      <span class="eyebrow">Your teacher<span
+        v-if="ws.config?.skillVersion"
+        class="skill-ver"
+        title="Teaching skill version"
+      >v{{ ws.config.skillVersion }}</span></span>
       <select
         class="model-select"
         :value="ws.model"
@@ -179,6 +183,13 @@ watch(
   text-transform: uppercase;
   color: var(--accent);
   font-weight: 600;
+}
+.skill-ver {
+  margin-left: 0.5rem;
+  color: var(--ink-soft);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: none;
 }
 .chat-list {
   flex: 1;

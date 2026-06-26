@@ -106,6 +106,12 @@ async function createSession(workspaceRoot: string): Promise<Session> {
     return { available: skillUpdateAvailable(bundledVersion, workspaceVersion), bundledVersion, workspaceVersion }
   }
   let skillUpdate = await computeSkillUpdate()
+  // The version of the skill actually in use: the workspace's copy, else the app's bundled one.
+  const skillVersion = ownsSkill
+    ? await readVersion(wsSkillFile)
+    : skillHome
+      ? await readVersion(path.join(skillSource, 'SKILL.md'))
+      : null
 
   const persisted = parseSessionFile(await wfs.read(SESSION_FILE))
   const resumedAtLaunch = !!persisted?.sessionId
@@ -187,6 +193,7 @@ async function createSession(workspaceRoot: string): Promise<Session> {
       resumed: resumedAtLaunch,
       messages: state.messages,
       skillUpdate,
+      skillVersion,
     }),
     sendChat: (text) => harness.send(text),
     startSession: () => {
@@ -394,6 +401,10 @@ function registerIpc(): void {
   ipcMain.handle(IPC.updateSkill, (): Promise<SkillUpdateInfo> => {
     if (!session) return Promise.resolve({ available: false, bundledVersion: null, workspaceVersion: null })
     return session.updateSkill()
+  })
+  ipcMain.handle(IPC.reopenWorkspace, (): Promise<AppConfig | null> => {
+    if (!session) return Promise.resolve(null)
+    return openWorkspace(session.workspaceRoot)
   })
 
   ipcMain.on(IPC.startSession, () => session?.startSession())

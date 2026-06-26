@@ -80,6 +80,11 @@ onMounted(async () => {
       if (now && !prev) enterWorkspace()
     },
   )
+  // Session recreated in place (e.g. after a skill update) → re-enter cleanly.
+  watch(
+    () => ws.reopenNonce,
+    () => enterWorkspace(),
+  )
   await ws.loadLauncher()
 
   // On each idle: persist the transcript and refresh content lists so lessons or

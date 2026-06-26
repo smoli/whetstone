@@ -22,6 +22,7 @@ export const IPC = {
   gitInfo: 'teach:gitInfo',
   gitPush: 'teach:gitPush',
   updateSkill: 'teach:updateSkill',
+  reopenWorkspace: 'teach:reopenWorkspace',
   winMinimize: 'teach:winMinimize',
   winMaximizeToggle: 'teach:winMaximizeToggle',
   winClose: 'teach:winClose',
@@ -49,6 +50,8 @@ export interface AppConfig {
   messages: ChatMessage[]
   /** Skill-update offer when the bundled teach skill is newer than the workspace's copy. */
   skillUpdate: SkillUpdateInfo | null
+  /** Version of the teach skill currently in use (workspace copy, else bundled), if any. */
+  skillVersion: string | null
 }
 
 /** State of the workspace's teach-skill copy vs the app's bundled version. */
@@ -132,6 +135,8 @@ export interface TeachApi {
   gitPush(remoteUrl: string | null): Promise<GitResult>
   /** Overwrite the workspace's teach skill with the app's bundled copy; returns the new state. */
   updateSkill(): Promise<SkillUpdateInfo>
+  /** Recreate the current workspace's session (e.g. after a skill update); null if none open. */
+  reopenWorkspace(): Promise<AppConfig | null>
   // ── custom (frameless) window controls ──
   minimizeWindow(): void
   /** Toggle maximize/restore of the main window. */
