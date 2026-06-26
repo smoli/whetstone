@@ -9,7 +9,9 @@ const alias = {
 export default defineConfig({
   main: {
     resolve: { alias },
-    plugins: [externalizeDepsPlugin()],
+    // Bundle node-html-parser (don't externalize): its `entities` dep is ESM-only,
+    // so a runtime require() of it from a CJS chunk throws ERR_REQUIRE_ESM.
+    plugins: [externalizeDepsPlugin({ exclude: ['node-html-parser'] })],
     build: { rollupOptions: { input: { index: 'src/main/index.ts' } } },
   },
   preload: {
