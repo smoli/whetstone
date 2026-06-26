@@ -141,6 +141,24 @@ describe('inline explain', () => {
     expect(help[0].body.anchorText).toContain('Earn')
     expect(help[0].body.anchorId).toBe('earn')
   })
+
+  it('gives an explain target without an id a stable, reload-safe anchorId', () => {
+    const p = document.createElement('p')
+    p.setAttribute('data-explain', 'Storage strength beats fluency')
+    p.textContent = 'Storage strength beats fluency'
+    ;(document.querySelector('article') as HTMLElement).appendChild(p)
+
+    makeBridge().init()
+    const firstId = p.id
+    expect(firstId).toBeTruthy() // an id was assigned
+    ;(p.querySelector('.teach-explain') as HTMLButtonElement).click()
+    const help = ofType('help_request')
+    expect(help[help.length - 1].body.anchorId).toBe(firstId)
+
+    // A reload re-runs init over the same markup → same id (so persisted patches match).
+    makeBridge().init()
+    expect(p.id).toBe(firstId)
+  })
 })
 
 describe('incoming agent commands', () => {

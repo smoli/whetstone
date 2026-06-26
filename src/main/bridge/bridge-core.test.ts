@@ -102,6 +102,7 @@ describe('handleLessonEvent — help_request', () => {
       type: 'help_request',
       eventId: 'e-help-1',
       lessonId: '0004',
+      anchorId: 'earn',
       anchorText: "Earn, don't tell",
       question: 'How do I do this without dialogue?',
       ts: TS,
@@ -110,6 +111,22 @@ describe('handleLessonEvent — help_request', () => {
     expect(r.artifacts).toHaveLength(0)
     expect(r.prompt).toContain("Earn, don't tell")
     expect(r.prompt).toContain('without dialogue')
+  })
+
+  it('directs the answer into the lesson via patch_lesson (persisted), not chat', async () => {
+    const event: LessonEvent = {
+      type: 'help_request',
+      eventId: 'e-help-2',
+      lessonId: '0004',
+      anchorId: 'earn',
+      anchorText: "Earn, don't tell",
+      ts: TS,
+    }
+    const r = await core.handleLessonEvent(event)
+    expect(r.prompt).toContain('patch_lesson')
+    expect(r.prompt).toContain('"#earn"') // selector built from the anchor id
+    expect(r.prompt).toContain('after') // insert after the passage
+    expect(r.prompt).not.toMatch(/in chat/i)
   })
 })
 

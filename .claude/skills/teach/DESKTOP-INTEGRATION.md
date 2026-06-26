@@ -57,7 +57,11 @@ It progressively enhances standard markup:
   `quiz_result` automatically.
 - **Inline "explain this":** add `data-explain` to any element (its text, or the
   `data-explain` value, becomes the question). The app injects an "explain ▸"
-  button that sends a `help_request` scoped to that passage.
+  button that sends a `help_request` scoped to that passage. **Answer it in the
+  lesson, not chat:** respond with `patch_lesson` (the synthesized turn gives you
+  the anchor's `selector` and `mode "after"`) so the explanation is inserted right
+  after the passage and persists on reload. Wrap it in a small, Tufte-clean
+  fragment such as `<aside class="teach-explanation">…</aside>`.
 
 All of this is backward compatible: the same lesson opened in a plain browser
 just shows the affordances and does nothing over the network.

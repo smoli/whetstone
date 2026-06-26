@@ -141,10 +141,18 @@ export class BridgeCore {
 
   private async onHelpRequest(e: HelpRequest): Promise<LessonEventResult> {
     const question = e.question?.trim() ? e.question.trim() : 'Please explain this in more depth.'
+    // Persist the explanation into the lesson (replayed on reload) rather than
+    // burying it in chat. patch_lesson writes to the lesson's sidecar.
+    const where = e.anchorId
+      ? `selector "#${e.anchorId}", mode "after"`
+      : `mode "after", with a selector matching the element that contains that passage`
     const prompt =
       `While reading lesson ${e.lessonId}, the learner asked for help on this passage: ` +
       `"${e.anchorText}". Their question: ${question} ` +
-      `Answer it directly in chat, grounded in the lesson and their mission.`
+      `Write a focused explanation grounded in the lesson and their mission, then insert it into the ` +
+      `lesson with the patch_lesson tool (lessonId "${e.lessonId}", ${where}) so it persists beside ` +
+      `the passage and survives a reload. Wrap it in a small, Tufte-clean fragment ` +
+      `(e.g. <aside class="teach-explanation">…</aside>). Put the explanation in the lesson, not the chat.`
     return { fresh: true, artifacts: [], prompt }
   }
 

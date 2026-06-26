@@ -149,7 +149,10 @@
 
     // ── inline explain ───────────────────────────────────────
     bridge.enhanceExplain = function () {
-      bridge.doc.querySelectorAll('[data-explain]').forEach(function (el) {
+      bridge.doc.querySelectorAll('[data-explain]').forEach(function (el, i) {
+        // Ensure a stable, reload-safe id so the agent's explanation (a
+        // patch_lesson anchored here) can target it and replay on reload.
+        if (!el.id) el.id = 'teach-ex-' + i
         if (el.querySelector('.teach-explain')) return
         var btn = bridge.doc.createElement('button')
         btn.type = 'button'
@@ -160,11 +163,12 @@
             type: 'help_request',
             eventId: uid(),
             lessonId: bridge.lessonId,
-            anchorId: el.id || undefined,
+            anchorId: el.id,
             anchorText: (el.dataset.explain || el.textContent || '').trim().slice(0, 400),
             ts: nowIso(),
           })
-          btn.textContent = 'asked — see chat'
+          btn.textContent = 'explaining…'
+          btn.disabled = true
         })
         el.appendChild(btn)
       })
@@ -235,7 +239,10 @@
         '.teach-feedback{margin-top:1rem;padding:0 1rem;border-left:3px solid var(--accent,#2b6cb0);' +
         'display:none}.teach-feedback.show{display:block}' +
         '.teach-explain{font:inherit;font-size:.7rem;margin-left:.4rem;padding:.05rem .4rem;border:1px solid var(--rule,#ccc);' +
-        'background:transparent;color:var(--accent,#2b6cb0);border-radius:.3rem;cursor:pointer;vertical-align:middle}'
+        'background:transparent;color:var(--accent,#2b6cb0);border-radius:.3rem;cursor:pointer;vertical-align:middle}' +
+        '.teach-explain:disabled{opacity:.6;cursor:default}' +
+        '.teach-explanation{margin:.8rem 0;padding:.6rem 1rem;border-left:3px solid var(--accent,#2b6cb0);' +
+        'background:var(--paper-card,rgba(0,0,0,.03));border-radius:.25rem;font-size:.95em}'
       var head = bridge.doc.head || bridge.doc.querySelector('head') || bridge.doc.body
       if (head) head.appendChild(style)
     }
