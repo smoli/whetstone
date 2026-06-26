@@ -142,6 +142,27 @@ describe('inline explain', () => {
     expect(help[0].body.anchorId).toBe('earn')
   })
 
+  it('removes the explain button when its explanation arrives (live patch)', () => {
+    const b = makeBridge()
+    b.init()
+    expect(document.querySelector('#earn .teach-explain')).not.toBeNull()
+    b.handleCommand({
+      type: 'patch_lesson',
+      lessonId: '0004',
+      selector: '#earn',
+      mode: 'after',
+      html: '<details class="teach-explanation"><summary>Explanation</summary><p>Because…</p></details>',
+    })
+    expect(document.querySelector('#earn .teach-explain')).toBeNull()
+  })
+
+  it('does not re-add an explain button when an explanation already follows (reload)', () => {
+    const p = document.querySelector('#earn') as HTMLElement
+    p.insertAdjacentHTML('afterend', '<details class="teach-explanation"><summary>Explanation</summary><p>x</p></details>')
+    makeBridge().init()
+    expect(document.querySelector('#earn .teach-explain')).toBeNull()
+  })
+
   it('gives an explain target without an id a stable, reload-safe anchorId', () => {
     const p = document.createElement('p')
     p.setAttribute('data-explain', 'Storage strength beats fluency')

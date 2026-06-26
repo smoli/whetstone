@@ -148,12 +148,24 @@
     }
 
     // ── inline explain ───────────────────────────────────────
+    // True when the passage already has an explanation baked in right after it.
+    bridge.isExplained = function (el) {
+      var sib = el.nextElementSibling
+      return !!(sib && sib.classList && sib.classList.contains('teach-explanation'))
+    }
+
     bridge.enhanceExplain = function () {
       bridge.doc.querySelectorAll('[data-explain]').forEach(function (el, i) {
         // Ensure a stable, reload-safe id so the agent's explanation (a
         // patch_lesson anchored here) can target it and replay on reload.
         if (!el.id) el.id = 'teach-ex-' + i
-        if (el.querySelector('.teach-explain')) return
+        var existing = el.querySelector('.teach-explain')
+        // Once an explanation is in, the button is redundant — drop it / don't add it.
+        if (bridge.isExplained(el)) {
+          if (existing) existing.remove()
+          return
+        }
+        if (existing) return
         var btn = bridge.doc.createElement('button')
         btn.type = 'button'
         btn.className = 'teach-explain'
@@ -178,7 +190,12 @@
     bridge.handleCommand = function (cmd) {
       if (!cmd || typeof cmd.type !== 'string') return
       if (cmd.type === 'lesson_feedback') return bridge.renderFeedback(cmd)
-      if (cmd.type === 'patch_lesson') return bridge.applyPatch(cmd)
+      if (cmd.type === 'patch_lesson') {
+        bridge.applyPatch(cmd)
+        // An explanation may have just landed — reconcile explain buttons.
+        bridge.enhanceExplain()
+        return
+      }
     }
 
     bridge.renderFeedback = function (cmd) {
