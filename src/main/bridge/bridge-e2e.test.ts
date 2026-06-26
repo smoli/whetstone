@@ -149,7 +149,7 @@ describe('M6 — inline explain', () => {
 })
 
 describe('M7 — self-rewriting lesson', () => {
-  it('broadcasts the patch to the lesson and persists it to a sidecar', async () => {
+  it('broadcasts the patch to the lesson and bakes it into the HTML file', async () => {
     const client = await lessonClient()
     const nextMsg = client.next()
     await tool('patch_lesson').handler({
@@ -159,8 +159,9 @@ describe('M7 — self-rewriting lesson', () => {
       html: '<div class="aside">moved the POV beat later</div>',
     })
     expect(await nextMsg).toMatchObject({ type: 'patch_lesson', selector: '.aside', mode: 'replace' })
-    const sidecar = JSON.parse(await fs.readFile(path.join(root, 'lessons', '0004.patches.json'), 'utf8'))
-    expect(sidecar[0].selector).toBe('.aside')
+    const file = await fs.readFile(path.join(root, 'lessons', '0004.html'), 'utf8')
+    expect(file).toContain('moved the POV beat later')
+    expect(file).not.toContain('>old<')
     client.close()
   })
 })

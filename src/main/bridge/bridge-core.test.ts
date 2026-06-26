@@ -126,7 +126,8 @@ describe('handleLessonEvent — help_request', () => {
     expect(r.prompt).toContain('patch_lesson')
     expect(r.prompt).toContain('"#earn"') // selector built from the anchor id
     expect(r.prompt).toContain('after') // insert after the passage
-    expect(r.prompt).not.toMatch(/in chat/i)
+    expect(r.prompt).toContain('<details') // collapsible
+    expect(r.prompt).not.toMatch(/in chat\b/i)
   })
 })
 
@@ -178,7 +179,8 @@ describe('applyAgentCommand — lesson_feedback', () => {
 })
 
 describe('applyAgentCommand — patch_lesson', () => {
-  it('broadcasts the patch and persists it to a sidecar for replay', async () => {
+  it('bakes the patch into the lesson HTML file (resolving the slugged filename) and broadcasts', async () => {
+    fs.files.set('lessons/0004-the-slice.html', '<!DOCTYPE html><html><body><div class="aside">old</div></body></html>')
     const cmd: AgentCommand = {
       type: 'patch_lesson',
       commandId: 'c-patch-1',
@@ -190,21 +192,36 @@ describe('applyAgentCommand — patch_lesson', () => {
     }
     const r = await core.applyAgentCommand(cmd)
     expect(r.broadcasts[0]).toMatchObject({ type: 'patch_lesson', selector: '.aside', mode: 'replace' })
-    const sidecar = await fs.read('lessons/0004.patches.json')
-    expect(sidecar).toBeTruthy()
-    const patches = JSON.parse(sidecar as string)
-    expect(patches).toHaveLength(1)
-    expect(patches[0].selector).toBe('.aside')
+    const file = await fs.read('lessons/0004-the-slice.html')
+    expect(file).toContain('moved the POV beat later')
+    expect(file).not.toContain('>old<')
+    expect(r.artifacts[0].path).toBe('lessons/0004-the-slice.html')
+    // no sidecar is written anymore
+    expect(await fs.read('lessons/0004.patches.json')).toBeNull()
   })
 
-  it('appends successive patches to the sidecar', async () => {
-    const mk = (id: string, sel: string): AgentCommand => ({
-      type: 'patch_lesson', commandId: id, lessonId: '0004', selector: sel, mode: 'append', html: '<p>x</p>', ts: TS,
+  it('persists an explanation after an explain anchor so it survives reload', async () => {
+    fs.files.set('lessons/0004-the-slice.html', '<!DOCTYPE html><html><body><p data-explain="Earn">Earn</p></body></html>')
+    await core.applyAgentCommand({
+      type: 'patch_lesson',
+      commandId: 'c-explain',
+      lessonId: '0004',
+      selector: '#teach-ex-0',
+      mode: 'after',
+      html: '<details class="teach-explanation"><summary>Explanation</summary><p>Because…</p></details>',
+      ts: TS,
     })
-    await core.applyAgentCommand(mk('p1', '.a'))
-    await core.applyAgentCommand(mk('p2', '.b'))
-    const patches = JSON.parse((await fs.read('lessons/0004.patches.json')) as string)
-    expect(patches).toHaveLength(2)
+    const file = (await fs.read('lessons/0004-the-slice.html')) as string
+    expect(file).toContain('teach-explanation')
+    expect(file).toContain('id="teach-ex-0"') // anchor id baked in for stable replay
+  })
+
+  it('broadcasts even when the lesson file is missing (no crash, no artifact)', async () => {
+    const r = await core.applyAgentCommand({
+      type: 'patch_lesson', commandId: 'c-nofile', lessonId: '0099', selector: '.x', mode: 'append', html: '<p>x</p>', ts: TS,
+    })
+    expect(r.broadcasts).toHaveLength(1)
+    expect(r.artifacts).toHaveLength(0)
   })
 })
 

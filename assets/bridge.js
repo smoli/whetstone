@@ -241,8 +241,12 @@
         '.teach-explain{font:inherit;font-size:.7rem;margin-left:.4rem;padding:.05rem .4rem;border:1px solid var(--rule,#ccc);' +
         'background:transparent;color:var(--accent,#2b6cb0);border-radius:.3rem;cursor:pointer;vertical-align:middle}' +
         '.teach-explain:disabled{opacity:.6;cursor:default}' +
-        '.teach-explanation{margin:.8rem 0;padding:.6rem 1rem;border-left:3px solid var(--accent,#2b6cb0);' +
-        'background:var(--paper-card,rgba(0,0,0,.03));border-radius:.25rem;font-size:.95em}'
+        '.teach-explanation{margin:.8rem 0;padding:.5rem 1rem;border-left:3px solid var(--accent,#2b6cb0);' +
+        'background:var(--paper-card,rgba(0,0,0,.03));border-radius:.25rem;font-size:.95em}' +
+        '.teach-explanation>summary{cursor:pointer;font-weight:600;color:var(--accent,#2b6cb0);' +
+        'list-style:none;padding:.1rem 0}' +
+        '.teach-explanation>summary::-webkit-details-marker{display:none}' +
+        '.teach-explanation[open]>summary{margin-bottom:.4rem}'
       var head = bridge.doc.head || bridge.doc.querySelector('head') || bridge.doc.body
       if (head) head.appendChild(style)
     }

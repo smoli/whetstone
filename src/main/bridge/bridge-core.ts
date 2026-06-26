@@ -9,6 +9,7 @@ import type {
   ScheduleReview,
   RecordLearning,
 } from '@shared/protocol'
+import { applyHtmlPatch } from './html-patch'
 
 /**
  * Workspace filesystem abstraction. All paths are workspace-relative.
@@ -151,8 +152,9 @@ export class BridgeCore {
       `"${e.anchorText}". Their question: ${question} ` +
       `Write a focused explanation grounded in the lesson and their mission, then insert it into the ` +
       `lesson with the patch_lesson tool (lessonId "${e.lessonId}", ${where}) so it persists beside ` +
-      `the passage and survives a reload. Wrap it in a small, Tufte-clean fragment ` +
-      `(e.g. <aside class="teach-explanation">…</aside>). Put the explanation in the lesson, not the chat.`
+      `the passage and survives a reload. Make it collapsible: wrap it in ` +
+      `<details class="teach-explanation"><summary>Explanation</summary>…</details>. ` +
+      `Put the explanation in the lesson, not the chat.`
     return { fresh: true, artifacts: [], prompt }
   }
 
@@ -163,19 +165,32 @@ export class BridgeCore {
   }
 
   private async onPatchLesson(cmd: PatchLesson): Promise<AgentCommandResult> {
-    const sidecar = `lessons/${cmd.lessonId}.patches.json`
-    const existing = await this.fs.read(sidecar)
-    const patches: unknown[] = existing ? (JSON.parse(existing) as unknown[]) : []
-    patches.push({
-      commandId: cmd.commandId,
-      selector: cmd.selector,
-      mode: cmd.mode,
-      html: cmd.html,
-      ts: cmd.ts,
-    })
-    const content = JSON.stringify(patches, null, 2)
-    await this.fs.write(sidecar, content)
-    return { fresh: true, artifacts: [{ path: sidecar, content }], broadcasts: [cmd] }
+    // Bake the edit into the lesson's HTML file so it's a permanent part of the
+    // lesson, then broadcast it so the live page updates immediately.
+    const artifacts: WrittenArtifact[] = []
+    const rel = await this.resolveLessonFile(cmd.lessonId)
+    if (rel) {
+      const html = await this.fs.read(rel)
+      if (html != null) {
+        const { html: patched, applied } = applyHtmlPatch(html, {
+          selector: cmd.selector,
+          mode: cmd.mode,
+          html: cmd.html,
+        })
+        if (applied) {
+          await this.fs.write(rel, patched)
+          artifacts.push({ path: rel, content: patched })
+        }
+      }
+    }
+    return { fresh: true, artifacts, broadcasts: [cmd] }
+  }
+
+  /** Resolve a lesson's HTML file by its numeric id prefix ("0004" → "0004-intro.html"). */
+  private async resolveLessonFile(lessonId: string): Promise<string | null> {
+    const names = await this.fs.list('lessons')
+    const match = names.find((n) => /\.html?$/i.test(n) && leadingId(n) === lessonId)
+    return match ? `lessons/${match}` : null
   }
 
   private async onScheduleReview(cmd: ScheduleReview): Promise<AgentCommandResult> {
@@ -213,6 +228,13 @@ export class BridgeCore {
 
 function pad(n: number): string {
   return String(n).padStart(4, '0')
+}
+
+/** Leading numeric id of a lesson filename ("0004-intro.html" → "0004"). */
+function leadingId(file: string): string {
+  const stem = file.replace(/\.html?$/i, '')
+  const m = /^(\d+)/.exec(stem)
+  return m ? m[1] : stem
 }
 
 function slug(s: string): string {
