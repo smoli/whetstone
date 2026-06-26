@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, Menu, nativeTheme } from 'electron'
 import { spawn, execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { existsSync, promises as fsp } from 'node:fs'
@@ -16,7 +16,15 @@ import { extractMissionTitle } from './workspace/mission'
 import { pushErrorMessage, isDirty } from './workspace/git'
 import { startMcpHttp } from './mcp/mcp-http'
 import { isExternalUrl } from '@shared/links'
-import { IPC, type AppConfig, type GitResult, type GitInfo, type LauncherState, type SkillUpdateInfo } from '@shared/ipc'
+import {
+  IPC,
+  type AppConfig,
+  type GitResult,
+  type GitInfo,
+  type LauncherState,
+  type SkillUpdateInfo,
+  type ThemeSource,
+} from '@shared/ipc'
 import { readSkillVersion, skillUpdateAvailable } from '@shared/skill-version'
 import type { ChatEvent, ChatMessage } from '@shared/chat'
 
@@ -33,7 +41,7 @@ const pexec = promisify(execFile)
 
 let mainWindow: BrowserWindow | null = null
 let session: Session | null = null
-let appState: AppState = { recent: [], lastWorkspace: null, openedAt: {} }
+let appState: AppState = { recent: [], lastWorkspace: null, openedAt: {}, theme: 'system' }
 let ipcReady = false
 
 async function runGit(args: string[], cwd: string): Promise<string> {
@@ -50,8 +58,10 @@ async function loadAppState(): Promise<void> {
   try {
     appState = parseAppState(await fsp.readFile(appStatePath(), 'utf8'))
   } catch {
-    appState = { recent: [], lastWorkspace: null, openedAt: {} }
+    appState = { recent: [], lastWorkspace: null, openedAt: {}, theme: 'system' }
   }
+  // Drives prefers-color-scheme for the app chrome AND the lesson iframe.
+  nativeTheme.themeSource = appState.theme
 }
 async function saveAppState(): Promise<void> {
   await fsp.writeFile(appStatePath(), JSON.stringify(appState, null, 2), 'utf8')
@@ -406,6 +416,12 @@ function registerIpc(): void {
     if (!session) return Promise.resolve(null)
     return openWorkspace(session.workspaceRoot)
   })
+  ipcMain.handle(IPC.getTheme, (): ThemeSource => appState.theme)
+  ipcMain.handle(IPC.setTheme, async (_e, source: ThemeSource): Promise<void> => {
+    appState.theme = source
+    nativeTheme.themeSource = source
+    await saveAppState()
+  })
 
   ipcMain.on(IPC.startSession, () => session?.startSession())
   ipcMain.on(IPC.sendChat, (_e, text: string) => session?.sendChat(text))
@@ -441,7 +457,7 @@ async function createWindow(): Promise<void> {
     title: 'Whetstone',
     icon: path.join(__dirname, '../../build/icon.png'),
     frame: false,
-    backgroundColor: '#f6f0e6',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1a1714' : '#f6f0e6',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.mjs'),
       contextIsolation: true,

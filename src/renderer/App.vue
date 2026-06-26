@@ -155,6 +155,25 @@ onMounted(async () => {
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --sans: "Inter", "Helvetica Neue", Arial, sans-serif;
   --head-h: 3rem;
+  /* The titlebar is dark in both themes — its own vars so it doesn't invert. */
+  --titlebar-bg: #2b2622;
+  --titlebar-fg: #fdfaf4;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #ece4d8;
+    --ink-soft: #a39b8f;
+    --paper: #1a1714;
+    --paper-card: #232019;
+    --rule: #39322b;
+    --accent: #e07a45;
+    --accent-soft: #7a4a30;
+    --good: #7aa874;
+    --bad: #d4715a;
+    --link: #e8975e;
+    --titlebar-bg: #100d0b;
+    --titlebar-fg: #ece4d8;
+  }
 }
 html,
 body,

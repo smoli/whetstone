@@ -1,3 +1,5 @@
+import type { ThemeSource } from '@shared/ipc'
+
 /** App-level config persisted in Electron userData (across workspaces). */
 export interface AppState {
   /** Most-recent-first list of absolute workspace paths. */
@@ -6,9 +8,13 @@ export interface AppState {
   lastWorkspace: string | null
   /** Path → ISO timestamp it was last opened. */
   openedAt: Record<string, string>
+  /** Color theme preference. */
+  theme: ThemeSource
 }
 
-export const EMPTY_APP_STATE: AppState = { recent: [], lastWorkspace: null, openedAt: {} }
+export const EMPTY_APP_STATE: AppState = { recent: [], lastWorkspace: null, openedAt: {}, theme: 'system' }
+
+const THEMES: ThemeSource[] = ['system', 'light', 'dark']
 
 const RECENT_CAP = 8
 
@@ -36,6 +42,7 @@ export function parseAppState(raw: string | null): AppState {
       recent: Array.isArray(obj.recent) ? obj.recent.filter((p): p is string => typeof p === 'string') : [],
       lastWorkspace: typeof obj.lastWorkspace === 'string' ? obj.lastWorkspace : null,
       openedAt,
+      theme: THEMES.includes(obj.theme as ThemeSource) ? (obj.theme as ThemeSource) : 'system',
     }
   } catch {
     return { ...EMPTY_APP_STATE }

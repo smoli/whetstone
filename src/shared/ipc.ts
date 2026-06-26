@@ -23,11 +23,16 @@ export const IPC = {
   gitPush: 'teach:gitPush',
   updateSkill: 'teach:updateSkill',
   reopenWorkspace: 'teach:reopenWorkspace',
+  getTheme: 'teach:getTheme',
+  setTheme: 'teach:setTheme',
   winMinimize: 'teach:winMinimize',
   winMaximizeToggle: 'teach:winMaximizeToggle',
   winClose: 'teach:winClose',
   winMaximizedChanged: 'teach:winMaximizedChanged',
 } as const
+
+/** Color theme. 'system' follows the OS; the others force light/dark. */
+export type ThemeSource = 'system' | 'light' | 'dark'
 
 export interface ModelOption {
   /** Value passed to claude --model; 'default' means omit the flag. */
@@ -137,6 +142,10 @@ export interface TeachApi {
   updateSkill(): Promise<SkillUpdateInfo>
   /** Recreate the current workspace's session (e.g. after a skill update); null if none open. */
   reopenWorkspace(): Promise<AppConfig | null>
+  /** The persisted color-theme preference. */
+  getTheme(): Promise<ThemeSource>
+  /** Set and persist the color theme (drives nativeTheme → prefers-color-scheme). */
+  setTheme(source: ThemeSource): Promise<void>
   // ── custom (frameless) window controls ──
   minimizeWindow(): void
   /** Toggle maximize/restore of the main window. */

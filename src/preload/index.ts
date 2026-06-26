@@ -7,6 +7,7 @@ import {
   type GitResult,
   type GitInfo,
   type SkillUpdateInfo,
+  type ThemeSource,
 } from '@shared/ipc'
 import type { ChatEvent, ClaudeError, ChatMessage } from '@shared/chat'
 
@@ -41,6 +42,8 @@ const api: TeachApi = {
   gitPush: (remoteUrl: string | null) => ipcRenderer.invoke(IPC.gitPush, remoteUrl) as Promise<GitResult>,
   updateSkill: () => ipcRenderer.invoke(IPC.updateSkill) as Promise<SkillUpdateInfo>,
   reopenWorkspace: () => ipcRenderer.invoke(IPC.reopenWorkspace) as Promise<AppConfig | null>,
+  getTheme: () => ipcRenderer.invoke(IPC.getTheme) as Promise<ThemeSource>,
+  setTheme: (source: ThemeSource) => ipcRenderer.invoke(IPC.setTheme, source) as Promise<void>,
   minimizeWindow: () => ipcRenderer.send(IPC.winMinimize),
   toggleMaximizeWindow: () => ipcRenderer.send(IPC.winMaximizeToggle),
   closeWindow: () => ipcRenderer.send(IPC.winClose),

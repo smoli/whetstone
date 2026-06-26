@@ -40,4 +40,11 @@ describe('parseAppState', () => {
   it('defaults openedAt to an empty object', () => {
     expect(parseAppState(null).openedAt).toEqual({})
   })
+
+  it('defaults theme to system and accepts only valid values', () => {
+    expect(parseAppState(null).theme).toBe('system')
+    expect(parseAppState(JSON.stringify({ theme: 'dark' })).theme).toBe('dark')
+    expect(parseAppState(JSON.stringify({ theme: 'light' })).theme).toBe('light')
+    expect(parseAppState(JSON.stringify({ theme: 'neon' })).theme).toBe('system')
+  })
 })

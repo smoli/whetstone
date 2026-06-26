@@ -257,3 +257,27 @@ textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--acce
   body { padding: 2rem 1rem 4rem; font-size: 18px; }
   h1 { font-size: 1.7rem; }
 }
+
+/* ---- Dark theme (driven by the app's nativeTheme → prefers-color-scheme) ---- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink:        #ece4d8;
+    --ink-soft:   #a39b8f;
+    --paper:      #1a1714;
+    --paper-card: #232019;
+    --rule:       #39322b;
+    --accent:     #e07a45;
+    --accent-soft:#7a4a30;
+    --good:       #7aa874;
+    --bad:        #d4715a;
+    --link:       #e8975e;
+  }
+  a:hover { background: #2e2820; }
+  .mission-callout { background: linear-gradient(180deg, #2a221b, #241d17); }
+  textarea,
+  .quiz-opt { background: #1f1b17; }
+  .quiz-opt:hover:not(:disabled) { background: #2a231c; }
+  .quiz-opt.correct { background: #213021; }
+  .quiz-opt.wrong   { background: #301f1c; }
+  .ask { background: #241d17; }
+}
