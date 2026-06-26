@@ -70,7 +70,7 @@ watch(
       <span class="eyebrow">
         <SparkSpinner
           :spinning="chat.busy"
-          :size="16"
+          :size="24"
           class="teacher-spark"
         />Your teacher<span
           v-if="ws.config?.skillVersion"
@@ -131,7 +131,7 @@ watch(
       >
         <SparkSpinner
           :spinning="true"
-          :size="15"
+          :size="22"
         /> Thinking… <span class="secs">{{ elapsed }}s</span>
       </div>
     </div>
