@@ -147,6 +147,8 @@ export interface TeachApi {
   /** Set and persist the color theme (drives nativeTheme → prefers-color-scheme). */
   setTheme(source: ThemeSource): Promise<void>
   // ── custom (frameless) window controls ──
+  /** Host OS platform (process.platform), e.g. 'darwin' | 'win32' | 'linux'. */
+  readonly platform: string
   minimizeWindow(): void
   /** Toggle maximize/restore of the main window. */
   toggleMaximizeWindow(): void

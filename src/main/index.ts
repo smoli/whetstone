@@ -451,12 +451,18 @@ function registerIpc(): void {
 async function createWindow(): Promise<void> {
   // No native application/menu bar — the app uses its own custom titlebar.
   Menu.setApplicationMenu(null)
+  const isMac = process.platform === 'darwin'
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     title: 'Whetstone',
     icon: path.join(__dirname, '../../build/icon.png'),
-    frame: false,
+    // macOS: keep the native traffic-light controls (hidden titlebar), nudged to
+    // sit vertically centered in our 2.3rem titlebar. Other platforms are fully
+    // frameless with the custom controls drawn in TitleBar.vue.
+    ...(isMac
+      ? { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 13, y: 11 } }
+      : { frame: false }),
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#1a1714' : '#f6f0e6',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.mjs'),

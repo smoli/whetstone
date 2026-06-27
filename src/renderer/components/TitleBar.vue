@@ -4,29 +4,46 @@ import type { ThemeSource } from '@shared/ipc'
 
 const maximized = ref(false)
 const theme = ref<ThemeSource>('system')
+// On macOS the OS draws the window controls (traffic lights); we only render
+// our own minimize/maximize/close on Windows/Linux.
+const isMac = window.teach.platform === 'darwin'
 let off: (() => void) | null = null
 
 onMounted(async () => {
   off = window.teach.onMaximizeChange((m) => (maximized.value = m))
   theme.value = await window.teach.getTheme()
 })
-onUnmounted(() => off?.())
+onUnmounted(() => {
+  off?.()
+  if (labelTimer !== null) clearTimeout(labelTimer)
+})
 
 const minimize = (): void => window.teach.minimizeWindow()
 const toggleMaximize = (): void => window.teach.toggleMaximizeWindow()
 const close = (): void => window.teach.closeWindow()
 
 const themeTitle = computed(() => `Theme: ${theme.value} (click to change)`)
+// The cycle includes "system", which can look identical to light/dark; a brief
+// label confirms which state each click lands on, then fades out to stay clean.
+const themeLabel = computed(() => theme.value[0].toUpperCase() + theme.value.slice(1))
+const labelVisible = ref(false)
+const labelHovered = ref(false)
+const labelShown = computed(() => labelVisible.value || labelHovered.value)
+let labelTimer: ReturnType<typeof setTimeout> | null = null
 function cycleTheme(): void {
   const next: ThemeSource = theme.value === 'system' ? 'light' : theme.value === 'light' ? 'dark' : 'system'
   theme.value = next
   void window.teach.setTheme(next)
+  labelVisible.value = true
+  if (labelTimer !== null) clearTimeout(labelTimer)
+  labelTimer = setTimeout(() => (labelVisible.value = false), 1600)
 }
 </script>
 
 <template>
   <header
     class="titlebar"
+    :class="{ mac: isMac }"
     @dblclick="toggleMaximize"
   >
     <span class="name">Whetstone</span>
@@ -35,10 +52,17 @@ function cycleTheme(): void {
       class="controls"
       @dblclick.stop
     >
+      <span
+        class="theme-label"
+        :class="{ show: labelShown }"
+        aria-hidden="true"
+      >{{ themeLabel }}</span>
       <button
         class="ctl"
         :title="themeTitle"
         @click="cycleTheme"
+        @mouseenter="labelHovered = true"
+        @mouseleave="labelHovered = false"
       >
         <!-- system: monitor -->
         <svg
@@ -92,14 +116,16 @@ function cycleTheme(): void {
           height="13"
         >
           <path
-            d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z"
+            d="M11 2.8a6 6 0 1 0 0 10.4 7.5 7.5 0 0 1 0-10.4z"
             fill="none"
             stroke="currentColor"
             stroke-width="1.2"
+            stroke-linejoin="round"
           />
         </svg>
       </button>
       <button
+        v-if="!isMac"
         class="ctl"
         title="Minimize"
         @click="minimize"
@@ -117,6 +143,7 @@ function cycleTheme(): void {
         </svg>
       </button>
       <button
+        v-if="!isMac"
         class="ctl"
         :title="maximized ? 'Restore' : 'Maximize'"
         @click="toggleMaximize"
@@ -163,6 +190,7 @@ function cycleTheme(): void {
         </svg>
       </button>
       <button
+        v-if="!isMac"
         class="ctl close"
         title="Close"
         @click="close"
@@ -196,6 +224,11 @@ function cycleTheme(): void {
   -webkit-app-region: drag;
   user-select: none;
 }
+/* macOS draws the traffic lights at top-left; reserve room so the centered
+   title and theme toggle never sit under them. */
+.titlebar.mac {
+  padding-left: 78px;
+}
 .name {
   position: absolute;
   left: 0;
@@ -210,8 +243,29 @@ function cycleTheme(): void {
 }
 .controls {
   display: flex;
+  align-items: center;
   height: 100%;
   -webkit-app-region: no-drag;
+}
+/* Transient confirmation of the chosen theme; fades out to keep the bar clean. */
+.theme-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--titlebar-fg);
+  letter-spacing: 0.02em;
+  margin-right: 0.1rem;
+  opacity: 0;
+  transform: translateX(4px);
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.theme-label.show {
+  opacity: 0.85;
+  transform: translateX(0);
+  transition-duration: 0.12s;
 }
 .ctl {
   width: 2.8rem;
@@ -225,7 +279,6 @@ function cycleTheme(): void {
   cursor: pointer;
 }
 .ctl:hover {
-  background: rgba(255, 255, 255, 0.12);
   color: #fff;
 }
 .ctl.close:hover {

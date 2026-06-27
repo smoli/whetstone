@@ -44,6 +44,7 @@ const api: TeachApi = {
   reopenWorkspace: () => ipcRenderer.invoke(IPC.reopenWorkspace) as Promise<AppConfig | null>,
   getTheme: () => ipcRenderer.invoke(IPC.getTheme) as Promise<ThemeSource>,
   setTheme: (source: ThemeSource) => ipcRenderer.invoke(IPC.setTheme, source) as Promise<void>,
+  platform: process.platform,
   minimizeWindow: () => ipcRenderer.send(IPC.winMinimize),
   toggleMaximizeWindow: () => ipcRenderer.send(IPC.winMaximizeToggle),
   closeWindow: () => ipcRenderer.send(IPC.winClose),
