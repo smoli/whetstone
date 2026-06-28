@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, Menu, nativeTheme } from 'electron'
-import { spawn, execFile } from 'node:child_process'
+import { spawn, execFile, execFileSync } from 'node:child_process'
 import { promisify } from 'node:util'
 import { existsSync, promises as fsp } from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { BridgeCore } from './bridge/bridge-core'
@@ -26,6 +27,7 @@ import {
   type ThemeSource,
 } from '@shared/ipc'
 import { readSkillVersion, skillUpdateAvailable } from '@shared/skill-version'
+import { mergeMissingPaths, commonBinDirs } from '@shared/path-env'
 import type { ChatEvent, ChatMessage } from '@shared/chat'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -495,15 +497,42 @@ async function createWindow(): Promise<void> {
   }
 }
 
+/**
+ * Repair PATH for the packaged GUI app. An app launched from Finder/Dock (not a
+ * terminal) inherits a minimal PATH that omits Homebrew, nvm, and ~/.local/bin —
+ * so the spawned `claude` and the tools it runs can't be found and the agent
+ * silently hangs ("Thinking…" forever, no first Bash call). Import the login
+ * shell's PATH and merge well-known bin dirs. No-op in dev and on Windows.
+ */
+function repairEnvPath(): void {
+  if (process.platform === 'win32' || !app.isPackaged) return
+  try {
+    const shell = process.env.SHELL || '/bin/zsh'
+    // -ilc: a login+interactive shell so it sources the profile files where users
+    // actually set PATH (e.g. ~/.zshrc); `command printf` dodges aliases.
+    const out = execFileSync(shell, ['-ilc', 'command printf %s "$PATH"'], {
+      encoding: 'utf8',
+      timeout: 5000,
+    }).trim()
+    if (out) process.env.PATH = out
+  } catch {
+    // Login shell unavailable/slow — fall through to the static merge below.
+  }
+  process.env.PATH = mergeMissingPaths(process.env.PATH ?? '', commonBinDirs(os.homedir()))
+}
+
 app.whenReady().then(async () => {
+  repairEnvPath()
   await loadAppState()
   await createWindow()
 })
 
 app.on('before-quit', () => session?.stop())
 
+// Quit when the window is closed on every platform, including macOS (the default
+// there is to keep the app alive in the Dock; this app has no use for that).
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  app.quit()
 })
 
 app.on('activate', () => {

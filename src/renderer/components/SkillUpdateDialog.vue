@@ -130,7 +130,7 @@ button {
 }
 .ghost {
   border: 1px solid var(--rule);
-  background: #fff;
+  background: var(--field);
   color: var(--ink);
 }
 .primary {

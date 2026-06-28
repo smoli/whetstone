@@ -179,7 +179,7 @@ watch(
   font-family: var(--sans);
   font-size: 0.78rem;
   color: var(--ink-soft);
-  background: #fff;
+  background: var(--field);
   border: 1px solid var(--rule);
   border-radius: 0.4rem;
   padding: 0.2rem 0.4rem;
@@ -243,7 +243,7 @@ watch(
   font-size: 0.74rem;
   letter-spacing: 0.02em;
   color: var(--ink-soft);
-  background: #f1ece2;
+  background: var(--code);
   border: 1px solid var(--rule);
   border-radius: 999px;
   padding: 0.2rem 0.7rem;
@@ -277,7 +277,7 @@ watch(
 .md :deep(code) {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85em;
-  background: #eee6d8;
+  background: var(--code);
   padding: 0.08rem 0.3rem;
   border-radius: 0.25rem;
 }
@@ -313,7 +313,7 @@ watch(
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--rule);
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--field);
   color: var(--ink);
 }
 .chat-input textarea:focus {

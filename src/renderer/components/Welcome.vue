@@ -157,7 +157,7 @@ button {
   font-size: 0.9rem;
   border: 1px solid var(--rule);
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--field);
   color: var(--ink);
   padding: 0.55rem 1rem;
   cursor: pointer;
@@ -183,7 +183,7 @@ button.primary {
   padding: 0.5rem 0.7rem;
   border: 1px solid var(--rule);
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--field);
   color: var(--ink);
 }
 .recent .label {

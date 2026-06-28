@@ -235,7 +235,7 @@ function docLabel(file: string): string {
   cursor: pointer;
 }
 .item:hover {
-  background: #efe7d8;
+  background: var(--hover);
 }
 .item.active {
   background: var(--accent);
@@ -282,7 +282,7 @@ function docLabel(file: string): string {
   cursor: pointer;
 }
 .rail-num:hover {
-  background: #efe7d8;
+  background: var(--hover);
 }
 .rail-num.active {
   background: var(--accent);

@@ -29,7 +29,39 @@ ways**. When you submit an exercise, complete a quiz, or click "explain" inside 
 lesson, it goes to the teacher; the teacher can render feedback inline, adapt the
 lesson, record what you've learned, and schedule spaced-repetition reviews.
 
-## Using it
+## Install
+
+Grab the latest build for your platform from the
+[Releases](../../releases/latest) page. Either way you'll also need
+[Claude Code](https://code.claude.com) installed and on your `PATH`
+(`claude --version`) — Whetstone drives it as the teaching engine.
+
+### macOS
+
+The released `.dmg` is **not notarized** (notarization requires a paid Apple
+Developer account). macOS therefore quarantines it on download and shows
+*"Whetstone is damaged and can't be opened"* — misleading wording for "this
+developer isn't verified." The app is fine; clear the quarantine flag to run it:
+
+1. Open the `.dmg` and drag **Whetstone** into **Applications**.
+2. Remove the quarantine attribute:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Whetstone.app
+   ```
+
+3. Launch Whetstone normally.
+
+(Right-click → Open does *not* clear the "damaged" variant — the `xattr` command
+is the reliable fix.)
+
+### Windows / Linux
+
+Run the `.exe` installer (Windows) or the `.AppImage` (Linux) from the release.
+These are also unsigned, so Windows SmartScreen may warn once — choose **More
+info → Run anyway**.
+
+## Running from source
 
 You'll need [Claude Code](https://code.claude.com) installed and on your `PATH`
 (`claude --version`), plus Node 20+.

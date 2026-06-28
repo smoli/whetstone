@@ -106,10 +106,13 @@ const title = computed(() => (ws.current ? contentLabel(ws.current.file) || ws.c
   height: 1.6rem;
   border: 1px solid var(--rule);
   border-radius: 0.35rem;
-  background: #fff;
+  background: var(--field);
   color: var(--ink);
   cursor: pointer;
   flex: 0 0 auto;
+}
+.nav-btn:not(:disabled):hover {
+  background: var(--field-hover);
 }
 .nav-btn:disabled {
   opacity: 0.4;
@@ -149,7 +152,7 @@ const title = computed(() => (ws.current ? contentLabel(ws.current.file) || ws.c
   flex: 1;
   border: 0;
   width: 100%;
-  background: #fff;
+  background: var(--paper);
 }
 .content-empty {
   flex: 1;

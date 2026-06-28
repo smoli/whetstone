@@ -134,7 +134,7 @@ async function push(): Promise<void> {
   padding: 0.3rem 0.45rem;
   border: 1px solid var(--rule);
   border-radius: 0.4rem;
-  background: #fff;
+  background: var(--field);
   color: var(--ink);
   width: 100%;
   box-sizing: border-box;
@@ -156,14 +156,20 @@ async function push(): Promise<void> {
   padding: 0.3rem 0.5rem;
   border: 1px solid var(--rule);
   border-radius: 0.4rem;
-  background: #fff;
+  background: var(--field);
   color: var(--ink);
   cursor: pointer;
+}
+.g-btn:not(.commit):not(:disabled):hover {
+  background: var(--field-hover);
 }
 .g-btn.commit {
   border-color: var(--accent);
   background: var(--accent);
   color: #fff;
+}
+.g-btn.commit:not(:disabled):hover {
+  filter: brightness(1.08);
 }
 .g-btn:disabled {
   opacity: 0.5;
