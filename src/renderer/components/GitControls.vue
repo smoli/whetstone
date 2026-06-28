@@ -1,13 +1,26 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useWorkspaceStore } from '../stores/workspace'
 
+const { t } = useI18n()
 const ws = useWorkspaceStore()
 const commitMsg = ref('')
 const commitStatus = ref('')
 const remoteUrl = ref('')
 const showRemote = ref(false)
 const pushing = ref(false)
+// The changed-files list is collapsed by default to keep the panel compact.
+const showChanges = ref(false)
+
+// One-letter status glyph for the file list.
+const STATUS_GLYPH: Record<string, string> = {
+  modified: 'M',
+  added: 'A',
+  deleted: 'D',
+  renamed: 'R',
+  untracked: '?',
+}
 
 async function commit(): Promise<void> {
   commitStatus.value = '…'
@@ -24,7 +37,7 @@ async function push(): Promise<void> {
   }
   if (!ws.git.hasRemote && !remoteUrl.value.trim()) return
   pushing.value = true
-  commitStatus.value = 'Pushing…'
+  commitStatus.value = t('git.pushing')
   const res = await ws.push(remoteUrl.value.trim() || null)
   commitStatus.value = res.message
   pushing.value = false
@@ -38,7 +51,7 @@ async function push(): Promise<void> {
 <template>
   <section class="git">
     <p class="git-label">
-      Git
+      {{ t('git.title') }}
       <span
         v-if="ws.git.branch"
         class="branch"
@@ -46,33 +59,63 @@ async function push(): Promise<void> {
         <span
           v-if="ws.git.dirty"
           class="dirty-dot"
-          title="Uncommitted changes"
+          :title="t('git.uncommitted')"
         >●</span>{{ ws.git.branch }}</span>
     </p>
+    <div
+      v-if="ws.git.changed.length"
+      class="changes"
+    >
+      <button
+        class="changes-toggle"
+        :aria-expanded="showChanges"
+        @click="showChanges = !showChanges"
+      >
+        <span
+          class="chevron"
+          :class="{ open: showChanges }"
+        >›</span>
+        {{ t('git.changedFiles', { count: ws.git.changed.length }, ws.git.changed.length) }}
+      </button>
+      <ul
+        v-if="showChanges"
+        class="changes-list"
+      >
+        <li
+          v-for="f in ws.git.changed"
+          :key="f.path"
+          class="change"
+          :title="`${t('git.status.' + f.status)} · ${f.path}`"
+        >
+          <span :class="['glyph', f.status]">{{ STATUS_GLYPH[f.status] }}</span>
+          <span class="change-path">{{ f.path }}</span>
+        </li>
+      </ul>
+    </div>
     <input
       v-model="commitMsg"
       class="g-input"
       type="text"
       :disabled="!ws.git.dirty"
-      :placeholder="ws.git.dirty ? 'Commit message…' : 'Nothing to commit'"
+      :placeholder="ws.git.dirty ? t('git.commitPlaceholder') : t('git.nothing')"
       @keydown.enter="commit"
     >
     <div class="g-row">
       <button
         class="g-btn commit"
         :disabled="!ws.git.dirty"
-        :title="ws.git.dirty ? 'Commit all changes' : 'Nothing to commit'"
+        :title="ws.git.dirty ? t('git.commitAll') : t('git.nothing')"
         @click="commit"
       >
-        Commit
+        {{ t('git.commit') }}
       </button>
       <button
         class="g-btn"
         :disabled="pushing"
-        :title="ws.git.hasRemote ? `Push to ${ws.git.remoteUrl}` : 'Set a remote and push'"
+        :title="ws.git.hasRemote ? t('git.pushTo', { url: ws.git.remoteUrl }) : t('git.setRemote')"
         @click="push"
       >
-        Push
+        {{ t('git.push') }}
       </button>
     </div>
     <input
@@ -80,7 +123,7 @@ async function push(): Promise<void> {
       v-model="remoteUrl"
       class="g-input"
       type="text"
-      placeholder="git@github.com:you/course.git"
+      :placeholder="t('git.remotePlaceholder')"
       @keydown.enter="push"
     >
     <p
@@ -127,6 +170,73 @@ async function push(): Promise<void> {
   font-size: 0.6rem;
   margin-right: 0.3rem;
   vertical-align: middle;
+}
+.changes-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.1rem;
+  cursor: pointer;
+}
+.changes-toggle:hover {
+  color: var(--ink);
+}
+.chevron {
+  display: inline-block;
+  transition: transform 0.12s ease;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.chevron.open {
+  transform: rotate(90deg);
+}
+.changes-list {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  max-height: 9rem;
+  overflow-y: auto;
+}
+.change {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  padding: 0.08rem 0.1rem;
+}
+.change-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+.glyph {
+  flex: 0 0 auto;
+  width: 0.9rem;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.glyph.modified {
+  color: var(--accent);
+}
+.glyph.added {
+  color: var(--good);
+}
+.glyph.deleted {
+  color: var(--bad);
+}
+.glyph.renamed {
+  color: var(--link);
+}
+.glyph.untracked {
+  color: var(--ink-soft);
 }
 .g-input {
   font: inherit;

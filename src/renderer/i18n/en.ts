@@ -1,0 +1,90 @@
+/** English UI catalog. The shape here is the source of truth; de.ts must match. */
+export const en = {
+  common: {
+    workspace: 'Workspace',
+  },
+  titlebar: {
+    minimize: 'Minimize',
+    maximize: 'Maximize',
+    restore: 'Restore',
+    close: 'Close',
+    themeHint: 'Theme: {name} (click to change)',
+    languageHint: 'Language: {name} (click to change)',
+  },
+  theme: {
+    system: 'System',
+    light: 'Light',
+    dark: 'Dark',
+  },
+  language: {
+    en: 'English',
+    de: 'German',
+  },
+  skillUpdate: {
+    title: 'Teaching skill update available',
+    lead: "The app bundles a newer version of the teach skill than this workspace's copy.",
+    detail:
+      "Updating overwrites this workspace's .claude/skills/teach. It takes effect the next time you open the workspace.",
+    notNow: 'Not now',
+    updating: 'Updating…',
+    update: 'Update skill',
+  },
+  git: {
+    title: 'Git',
+    uncommitted: 'Uncommitted changes',
+    commitPlaceholder: 'Commit message…',
+    nothing: 'Nothing to commit',
+    commit: 'Commit',
+    commitAll: 'Commit all changes',
+    push: 'Push',
+    pushTo: 'Push to {url}',
+    setRemote: 'Set a remote and push',
+    remotePlaceholder: 'git@github.com:you/course.git',
+    pushing: 'Pushing…',
+    changedFiles: 'no changes | {count} changed file | {count} changed files',
+    status: {
+      modified: 'Modified',
+      added: 'Added',
+      deleted: 'Deleted',
+      renamed: 'Renamed',
+      untracked: 'Untracked',
+    },
+  },
+  lesson: {
+    back: 'Back',
+    forward: 'Forward',
+    openInBrowser: 'Open in browser',
+    content: 'content',
+    empty: 'No lessons yet — ask your teacher to begin.',
+  },
+  chat: {
+    teacher: 'Your teacher',
+    skillVersion: 'Teaching skill version',
+    model: 'Model',
+    thinking: 'Thinking…',
+    placeholder: 'Ask your teacher anything, or paste your work…',
+    send: 'Send',
+  },
+  sidebar: {
+    expand: 'Expand',
+    collapse: 'Collapse',
+    reveal: 'Reveal workspace in file manager',
+    lessons: 'Lessons',
+    noLessons: 'No lessons yet.',
+    references: 'References',
+    home: 'Home',
+  },
+  welcome: {
+    tagline: 'Sharpen what you know',
+    openFolder: 'Open a folder…',
+    topicPlaceholder: 'What do you want to learn? (optional)',
+    newSession: 'New session',
+    recent: 'Recent sessions',
+    openError: 'Something went wrong opening that workspace.',
+    creditPrefix: 'Built on the',
+    creditSkill: 'teach',
+    creditSuffix: 'skill by AI Hero —',
+  },
+}
+
+export type Messages = typeof en

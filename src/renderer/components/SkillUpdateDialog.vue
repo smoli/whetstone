@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useWorkspaceStore } from '../stores/workspace'
 
+const { t } = useI18n()
 const ws = useWorkspaceStore()
 const busy = ref(false)
 
@@ -29,9 +31,9 @@ async function update(): Promise<void> {
       role="dialog"
       aria-modal="true"
     >
-      <h2>Teaching skill update available</h2>
+      <h2>{{ t('skillUpdate.title') }}</h2>
       <p class="lead">
-        The app bundles a newer version of the teach skill than this workspace's copy.
+        {{ t('skillUpdate.lead') }}
       </p>
       <p class="versions">
         <span class="v-cur">v{{ current }}</span>
@@ -39,8 +41,7 @@ async function update(): Promise<void> {
         <span class="v-new">v{{ bundled }}</span>
       </p>
       <p class="note">
-        Updating overwrites this workspace's <code>.claude/skills/teach</code>. It takes effect the next
-        time you open the workspace.
+        {{ t('skillUpdate.detail') }}
       </p>
       <div class="actions">
         <button
@@ -48,14 +49,14 @@ async function update(): Promise<void> {
           :disabled="busy"
           @click="ws.dismissSkillUpdate()"
         >
-          Not now
+          {{ t('skillUpdate.notNow') }}
         </button>
         <button
           class="primary"
           :disabled="busy"
           @click="update"
         >
-          {{ busy ? 'Updating…' : 'Update skill' }}
+          {{ busy ? t('skillUpdate.updating') : t('skillUpdate.update') }}
         </button>
       </div>
     </div>

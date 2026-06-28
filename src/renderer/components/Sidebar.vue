@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useWorkspaceStore } from '../stores/workspace'
 import GitControls from './GitControls.vue'
 import { lessonNumber, contentLabel } from '@shared/links'
 
 import type { ContentSection } from '../stores/workspace'
 
+const { t } = useI18n()
 const ws = useWorkspaceStore()
 defineProps<{ collapsed: boolean }>()
 const emit = defineEmits<{ toggle: []; sessions: [] }>()
@@ -24,7 +26,7 @@ function docLabel(file: string): string {
     <div class="side-head">
       <button
         class="icon-btn"
-        :title="collapsed ? 'Expand' : 'Collapse'"
+        :title="collapsed ? t('sidebar.expand') : t('sidebar.collapse')"
         @click="emit('toggle')"
       >
         {{ collapsed ? '☰' : '«' }}
@@ -32,11 +34,11 @@ function docLabel(file: string): string {
       <strong
         v-if="!collapsed"
         class="ws-name"
-      >{{ ws.config?.workspaceName ?? 'Workspace' }}</strong>
+      >{{ ws.config?.workspaceName ?? t('common.workspace') }}</strong>
       <button
         v-if="!collapsed"
         class="icon-btn reveal"
-        title="Reveal workspace in file manager"
+        :title="t('sidebar.reveal')"
         @click="ws.revealWorkspace()"
       >
         <svg
@@ -62,13 +64,13 @@ function docLabel(file: string): string {
     >
       <section class="group">
         <p class="group-label">
-          Lessons
+          {{ t('sidebar.lessons') }}
         </p>
         <p
           v-if="!ws.lessons.length"
           class="empty"
         >
-          No lessons yet.
+          {{ t('sidebar.noLessons') }}
         </p>
         <button
           v-for="file in ws.lessons"
@@ -89,7 +91,7 @@ function docLabel(file: string): string {
         class="group"
       >
         <p class="group-label">
-          References
+          {{ t('sidebar.references') }}
         </p>
         <button
           v-for="file in ws.references"
@@ -106,7 +108,7 @@ function docLabel(file: string): string {
         class="group"
       >
         <p class="group-label">
-          Workspace
+          {{ t('common.workspace') }}
         </p>
         <button
           v-for="file in ws.docs"
@@ -140,13 +142,13 @@ function docLabel(file: string): string {
     <button
       class="home"
       :class="{ icononly: collapsed }"
-      title="Home"
+      :title="t('sidebar.home')"
       @click="emit('sessions')"
     >
       <span class="house">⌂</span><span
         v-if="!collapsed"
         class="home-label"
-      >Home</span>
+      >{{ t('sidebar.home') }}</span>
     </button>
   </aside>
 </template>

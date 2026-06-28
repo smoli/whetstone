@@ -92,6 +92,12 @@ export interface GitResult {
   message: string
 }
 
+/** A changed path with a normalized status, shown in the commit-time file list. */
+export interface GitChange {
+  path: string
+  status: 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked'
+}
+
 export interface GitInfo {
   isRepo: boolean
   branch: string | null
@@ -99,6 +105,8 @@ export interface GitInfo {
   remoteUrl: string | null
   /** True if the working tree has uncommitted changes (something to commit). */
   dirty: boolean
+  /** The uncommitted changes (empty when clean), for the expandable file list. */
+  changed: GitChange[]
 }
 
 /** The typed surface the preload exposes to the renderer as `window.teach`. */

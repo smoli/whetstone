@@ -1,0 +1,90 @@
+import type { Messages } from './en'
+
+/** German UI catalog. Must mirror the key structure of en.ts (enforced by test). */
+export const de: Messages = {
+  common: {
+    workspace: 'Arbeitsbereich',
+  },
+  titlebar: {
+    minimize: 'Minimieren',
+    maximize: 'Maximieren',
+    restore: 'Wiederherstellen',
+    close: 'Schließen',
+    themeHint: 'Darstellung: {name} (zum Wechseln klicken)',
+    languageHint: 'Sprache: {name} (zum Wechseln klicken)',
+  },
+  theme: {
+    system: 'System',
+    light: 'Hell',
+    dark: 'Dunkel',
+  },
+  language: {
+    en: 'Englisch',
+    de: 'Deutsch',
+  },
+  skillUpdate: {
+    title: 'Update für die Lehr-Skill verfügbar',
+    lead: 'Die App enthält eine neuere Version der teach-Skill als die Kopie in diesem Arbeitsbereich.',
+    detail:
+      'Beim Aktualisieren wird .claude/skills/teach in diesem Arbeitsbereich überschrieben. Es wird beim nächsten Öffnen des Arbeitsbereichs wirksam.',
+    notNow: 'Jetzt nicht',
+    updating: 'Wird aktualisiert…',
+    update: 'Skill aktualisieren',
+  },
+  git: {
+    title: 'Git',
+    uncommitted: 'Nicht committete Änderungen',
+    commitPlaceholder: 'Commit-Nachricht…',
+    nothing: 'Nichts zu committen',
+    commit: 'Committen',
+    commitAll: 'Alle Änderungen committen',
+    push: 'Push',
+    pushTo: 'Push nach {url}',
+    setRemote: 'Remote festlegen und pushen',
+    remotePlaceholder: 'git@github.com:du/kurs.git',
+    pushing: 'Wird gepusht…',
+    changedFiles: 'keine Änderungen | {count} geänderte Datei | {count} geänderte Dateien',
+    status: {
+      modified: 'Geändert',
+      added: 'Hinzugefügt',
+      deleted: 'Gelöscht',
+      renamed: 'Umbenannt',
+      untracked: 'Unverfolgt',
+    },
+  },
+  lesson: {
+    back: 'Zurück',
+    forward: 'Vorwärts',
+    openInBrowser: 'Im Browser öffnen',
+    content: 'Inhalt',
+    empty: 'Noch keine Lektionen — bitte deine Lehrerin oder deinen Lehrer, zu beginnen.',
+  },
+  chat: {
+    teacher: 'Deine Lehrkraft',
+    skillVersion: 'Version der Lehr-Skill',
+    model: 'Modell',
+    thinking: 'Denkt nach…',
+    placeholder: 'Frag deine Lehrkraft etwas oder füge deine Arbeit ein…',
+    send: 'Senden',
+  },
+  sidebar: {
+    expand: 'Ausklappen',
+    collapse: 'Einklappen',
+    reveal: 'Arbeitsbereich im Dateimanager anzeigen',
+    lessons: 'Lektionen',
+    noLessons: 'Noch keine Lektionen.',
+    references: 'Referenzen',
+    home: 'Start',
+  },
+  welcome: {
+    tagline: 'Schärfe, was du weißt',
+    openFolder: 'Ordner öffnen…',
+    topicPlaceholder: 'Was möchtest du lernen? (optional)',
+    newSession: 'Neue Sitzung',
+    recent: 'Letzte Sitzungen',
+    openError: 'Beim Öffnen dieses Arbeitsbereichs ist etwas schiefgelaufen.',
+    creditPrefix: 'Basiert auf der',
+    creditSkill: 'teach',
+    creditSuffix: 'Skill von AI Hero —',
+  },
+}

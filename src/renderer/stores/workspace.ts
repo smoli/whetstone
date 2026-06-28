@@ -22,7 +22,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const model = ref('default')
   const models = ref<ModelOption[]>([])
   const session = ref<{ messages: ChatMessage[]; resumed: boolean }>({ messages: [], resumed: false })
-  const git = ref<GitInfo>({ isRepo: false, branch: null, hasRemote: false, remoteUrl: null, dirty: false })
+  const git = ref<GitInfo>({ isRepo: false, branch: null, hasRemote: false, remoteUrl: null, dirty: false, changed: [] })
   const version = ref('')
   const skillUpdate = ref<SkillUpdateInfo | null>(null)
   /** Bumped when the active workspace's session is recreated in place (e.g. after a skill update). */

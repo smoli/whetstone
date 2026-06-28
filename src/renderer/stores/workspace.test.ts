@@ -45,7 +45,7 @@ describe('content navigation + history', () => {
         listLessons: async () => lessonList,
         listReferences: async () => [],
         listDocs: async () => [],
-        gitInfo: async () => ({ isRepo: false, branch: null, hasRemote: false, remoteUrl: null, dirty: false }),
+        gitInfo: async () => ({ isRepo: false, branch: null, hasRemote: false, remoteUrl: null, dirty: false, changed: [] }),
       },
     }
     ws.openItem('lessons', '0001-intro.html')

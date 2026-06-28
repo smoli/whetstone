@@ -14,7 +14,7 @@ import { MODELS, buildExtraArgs, parseSessionFile, shouldFallbackToFresh, type S
 import { scaffoldSession, needsOverwriteConfirm, type ScaffoldDeps } from './workspace/scaffold'
 import { addRecent, removeRecent, parseAppState, type AppState } from './workspace/app-config'
 import { extractMissionTitle } from './workspace/mission'
-import { pushErrorMessage, isDirty } from './workspace/git'
+import { pushErrorMessage, isDirty, parseChangedFiles } from './workspace/git'
 import { startMcpHttp } from './mcp/mcp-http'
 import { isExternalUrl } from '@shared/links'
 import {
@@ -252,10 +252,11 @@ async function createSession(workspaceRoot: string): Promise<Session> {
         } catch {
           /* no origin */
         }
-        const dirty = isDirty(await runGit(['status', '--porcelain'], workspaceRoot))
-        return { isRepo: true, branch, hasRemote: !!remoteUrl, remoteUrl, dirty }
+        const porcelain = await runGit(['status', '--porcelain'], workspaceRoot)
+        const changed = parseChangedFiles(porcelain)
+        return { isRepo: true, branch, hasRemote: !!remoteUrl, remoteUrl, dirty: isDirty(porcelain), changed }
       } catch {
-        return { isRepo: false, branch: null, hasRemote: false, remoteUrl: null, dirty: false }
+        return { isRepo: false, branch: null, hasRemote: false, remoteUrl: null, dirty: false, changed: [] }
       }
     },
     gitPush: async (remoteUrl): Promise<GitResult> => {
@@ -403,7 +404,7 @@ function registerIpc(): void {
     return session.gitCommit(message)
   })
   ipcMain.handle(IPC.gitInfo, (): Promise<GitInfo> => {
-    if (!session) return Promise.resolve({ isRepo: false, branch: null, hasRemote: false, remoteUrl: null, dirty: false })
+    if (!session) return Promise.resolve({ isRepo: false, branch: null, hasRemote: false, remoteUrl: null, dirty: false, changed: [] })
     return session.gitInfo()
   })
   ipcMain.handle(IPC.gitPush, (_e, remoteUrl: string | null): Promise<GitResult> => {

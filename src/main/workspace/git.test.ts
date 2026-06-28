@@ -1,5 +1,29 @@
 import { describe, it, expect } from 'vitest'
-import { pushErrorMessage, isDirty } from './git'
+import { pushErrorMessage, isDirty, parseChangedFiles } from './git'
+
+describe('parseChangedFiles', () => {
+  it('returns an empty list for a clean tree', () => {
+    expect(parseChangedFiles('')).toEqual([])
+    expect(parseChangedFiles('\n  \n')).toEqual([])
+  })
+
+  it('classifies modified, added, deleted, untracked, and renamed entries', () => {
+    const out = parseChangedFiles(
+      [' M lessons/0001.html', 'A  new.md', ' D old.md', '?? notes.txt', 'R  a.md -> b.md'].join('\n'),
+    )
+    expect(out).toEqual([
+      { path: 'lessons/0001.html', status: 'modified' },
+      { path: 'new.md', status: 'added' },
+      { path: 'old.md', status: 'deleted' },
+      { path: 'notes.txt', status: 'untracked' },
+      { path: 'b.md', status: 'renamed' },
+    ])
+  })
+
+  it('ignores blank lines', () => {
+    expect(parseChangedFiles(' M a\n\n M b\n')).toHaveLength(2)
+  })
+})
 
 describe('isDirty', () => {
   it('is false for a clean working tree', () => {

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useWorkspaceStore } from '../stores/workspace'
 import { contentLabel } from '@shared/links'
 
+const { t } = useI18n()
 const ws = useWorkspaceStore()
 defineProps<{ sidebarCollapsed: boolean }>()
 
@@ -15,7 +17,7 @@ const title = computed(() => (ws.current ? contentLabel(ws.current.file) || ws.c
       <div class="bar">
         <button
           class="nav-btn"
-          title="Back"
+          :title="t('lesson.back')"
           :disabled="!ws.canBack"
           @click="ws.back()"
         >
@@ -23,14 +25,14 @@ const title = computed(() => (ws.current ? contentLabel(ws.current.file) || ws.c
         </button>
         <button
           class="nav-btn"
-          title="Forward"
+          :title="t('lesson.forward')"
           :disabled="!ws.canForward"
           @click="ws.forward()"
         >
           ›
         </button>
         <template v-if="sidebarCollapsed">
-          <span class="ws-name">{{ ws.config?.workspaceName ?? 'Workspace' }}</span>
+          <span class="ws-name">{{ ws.config?.workspaceName ?? t('common.workspace') }}</span>
           <span
             v-if="title"
             class="sep"
@@ -40,7 +42,7 @@ const title = computed(() => (ws.current ? contentLabel(ws.current.file) || ws.c
         <button
           v-if="ws.currentUrl"
           class="nav-btn open-btn"
-          title="Open in browser"
+          :title="t('lesson.openInBrowser')"
           @click="ws.openCurrentInBrowser()"
         >
           <svg
@@ -65,13 +67,13 @@ const title = computed(() => (ws.current ? contentLabel(ws.current.file) || ws.c
       v-if="ws.currentUrl"
       :src="ws.currentUrl"
       class="content-frame"
-      title="content"
+      :title="t('lesson.content')"
     />
     <div
       v-else
       class="content-empty"
     >
-      No lessons yet — ask your teacher to begin.
+      {{ t('lesson.empty') }}
     </div>
   </section>
 </template>

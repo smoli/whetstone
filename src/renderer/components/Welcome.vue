@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useWorkspaceStore } from '../stores/workspace'
 import { formatRelativeTime } from '@shared/time'
 
+const { t } = useI18n()
 const ws = useWorkspaceStore()
 const emit = defineEmits<{ entered: [] }>()
 const topic = ref('')
@@ -20,7 +22,7 @@ async function run(fn: () => Promise<boolean>): Promise<void> {
   try {
     if (await fn()) emit('entered')
   } catch {
-    error.value = 'Something went wrong opening that workspace.'
+    error.value = t('welcome.openError')
   } finally {
     busy.value = false
   }
@@ -46,7 +48,7 @@ function openCredit(): void {
           class="version"
         >v{{ ws.version }}</span>
       </p>
-      <h1>Sharpen what you know</h1>
+      <h1>{{ t('welcome.tagline') }}</h1>
 
       <div class="actions">
         <button
@@ -54,7 +56,7 @@ function openCredit(): void {
           :disabled="busy"
           @click="openFolder"
         >
-          Open a folder…
+          {{ t('welcome.openFolder') }}
         </button>
       </div>
 
@@ -62,14 +64,14 @@ function openCredit(): void {
         <input
           v-model="topic"
           type="text"
-          placeholder="What do you want to learn? (optional)"
+          :placeholder="t('welcome.topicPlaceholder')"
           @keydown.enter="create"
         >
         <button
           :disabled="busy"
           @click="create"
         >
-          New session
+          {{ t('welcome.newSession') }}
         </button>
       </div>
 
@@ -78,7 +80,7 @@ function openCredit(): void {
         class="recent"
       >
         <p class="label">
-          Recent sessions
+          {{ t('welcome.recent') }}
         </p>
         <button
           v-for="r in ws.recent"
@@ -107,7 +109,7 @@ function openCredit(): void {
       </p>
 
       <p class="credit">
-        Built on the <em>teach</em> skill by AI Hero —
+        {{ t('welcome.creditPrefix') }} <em>{{ t('welcome.creditSkill') }}</em> {{ t('welcome.creditSuffix') }}
         <a
           href="https://www.aihero.dev/learn-anything-with-my-teach-skill"
           @click.prevent="openCredit"

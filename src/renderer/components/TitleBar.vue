@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { ThemeSource } from '@shared/ipc'
+import { setLocale, currentLocale, type Locale } from '../i18n'
+
+const { t } = useI18n()
 
 const maximized = ref(false)
 const theme = ref<ThemeSource>('system')
+const locale = ref<Locale>(currentLocale())
 // On macOS the OS draws the window controls (traffic lights); we only render
 // our own minimize/maximize/close on Windows/Linux.
 const isMac = window.teach.platform === 'darwin'
@@ -22,10 +27,11 @@ const minimize = (): void => window.teach.minimizeWindow()
 const toggleMaximize = (): void => window.teach.toggleMaximizeWindow()
 const close = (): void => window.teach.closeWindow()
 
-const themeTitle = computed(() => `Theme: ${theme.value} (click to change)`)
+const themeName = computed(() => t(`theme.${theme.value}`))
+const themeTitle = computed(() => t('titlebar.themeHint', { name: themeName.value }))
 // The cycle includes "system", which can look identical to light/dark; a brief
 // label confirms which state each click lands on, then fades out to stay clean.
-const themeLabel = computed(() => theme.value[0].toUpperCase() + theme.value.slice(1))
+const themeLabel = computed(() => themeName.value)
 const labelVisible = ref(false)
 const labelHovered = ref(false)
 const labelShown = computed(() => labelVisible.value || labelHovered.value)
@@ -37,6 +43,13 @@ function cycleTheme(): void {
   labelVisible.value = true
   if (labelTimer !== null) clearTimeout(labelTimer)
   labelTimer = setTimeout(() => (labelVisible.value = false), 1600)
+}
+
+const languageTitle = computed(() => t('titlebar.languageHint', { name: t(`language.${locale.value}`) }))
+function toggleLanguage(): void {
+  const next: Locale = locale.value === 'en' ? 'de' : 'en'
+  locale.value = next
+  setLocale(next)
 }
 </script>
 
@@ -52,6 +65,13 @@ function cycleTheme(): void {
       class="controls"
       @dblclick.stop
     >
+      <button
+        class="ctl lang"
+        :title="languageTitle"
+        @click="toggleLanguage"
+      >
+        {{ locale.toUpperCase() }}
+      </button>
       <span
         class="theme-label"
         :class="{ show: labelShown }"
@@ -127,7 +147,7 @@ function cycleTheme(): void {
       <button
         v-if="!isMac"
         class="ctl"
-        title="Minimize"
+        :title="t('titlebar.minimize')"
         @click="minimize"
       >
         <svg
@@ -145,7 +165,7 @@ function cycleTheme(): void {
       <button
         v-if="!isMac"
         class="ctl"
-        :title="maximized ? 'Restore' : 'Maximize'"
+        :title="maximized ? t('titlebar.restore') : t('titlebar.maximize')"
         @click="toggleMaximize"
       >
         <svg
@@ -192,7 +212,7 @@ function cycleTheme(): void {
       <button
         v-if="!isMac"
         class="ctl close"
-        title="Close"
+        :title="t('titlebar.close')"
         @click="close"
       >
         <svg
@@ -280,6 +300,19 @@ function cycleTheme(): void {
 }
 .ctl:hover {
   color: #fff;
+}
+/* The language toggle shows its 2-letter code as text, not an icon. */
+.ctl.lang {
+  width: auto;
+  padding: 0 0.6rem;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+}
+.ctl.lang:hover {
+  opacity: 1;
 }
 .ctl.close:hover {
   background: var(--bad);

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useChatStore } from '../stores/chat'
 import { useWorkspaceStore } from '../stores/workspace'
 import SparkSpinner from './SparkSpinner.vue'
 import { renderMarkdown } from '../markdown'
 import { resolveChatLink } from '@shared/links'
 
+const { t } = useI18n()
 const chat = useChatStore()
 const ws = useWorkspaceStore()
 
@@ -29,6 +31,37 @@ function onListClick(e: MouseEvent): void {
 }
 const draft = ref('')
 const list = ref<HTMLElement | null>(null)
+
+// Composer is vertically resizable by dragging the bar above it (persisted).
+const COMPOSER_MIN = 56
+const COMPOSER_DEFAULT = 84
+function loadComposerHeight(): number {
+  const v = Number(localStorage.getItem('teach.composerHeight'))
+  return v >= COMPOSER_MIN && v <= 1000 ? v : COMPOSER_DEFAULT
+}
+const composerHeight = ref(loadComposerHeight())
+const resizing = ref(false)
+function startResize(ev: PointerEvent): void {
+  resizing.value = true
+  const handle = ev.currentTarget as HTMLElement
+  handle.setPointerCapture(ev.pointerId)
+  const startY = ev.clientY
+  const startH = composerHeight.value
+  const move = (e: PointerEvent): void => {
+    // Drag up (clientY decreases) to grow; clamp so the header + some history stay.
+    const max = Math.max(COMPOSER_MIN, window.innerHeight - 220)
+    composerHeight.value = Math.min(Math.max(startH + (startY - e.clientY), COMPOSER_MIN), max)
+  }
+  const up = (e: PointerEvent): void => {
+    resizing.value = false
+    handle.releasePointerCapture(e.pointerId)
+    handle.removeEventListener('pointermove', move)
+    handle.removeEventListener('pointerup', up)
+    localStorage.setItem('teach.composerHeight', String(composerHeight.value))
+  }
+  handle.addEventListener('pointermove', move)
+  handle.addEventListener('pointerup', up)
+}
 
 // Thinking timer: tick once a second; elapsed derives from the store's startedAt.
 const tick = ref(Date.now())
@@ -72,15 +105,15 @@ watch(
           :spinning="chat.busy"
           :size="24"
           class="teacher-spark"
-        />Your teacher<span
+        />{{ t('chat.teacher') }}<span
           v-if="ws.config?.skillVersion"
           class="skill-ver"
-          title="Teaching skill version"
+          :title="t('chat.skillVersion')"
         >v{{ ws.config.skillVersion }}</span></span>
       <select
         class="model-select"
         :value="ws.model"
-        title="Model"
+        :title="t('chat.model')"
         @change="ws.setModel(($event.target as HTMLSelectElement).value)"
       >
         <option
@@ -132,25 +165,30 @@ watch(
         <SparkSpinner
           :spinning="true"
           :size="22"
-        /> Thinking… <span class="secs">{{ elapsed }}s</span>
+        /> {{ t('chat.thinking') }} <span class="secs">{{ elapsed }}s</span>
       </div>
     </div>
 
+    <div
+      class="composer-resize"
+      :class="{ active: resizing }"
+      @pointerdown="startResize"
+    />
     <form
       class="chat-input"
       @submit.prevent="submit"
     >
       <textarea
         v-model="draft"
-        placeholder="Ask your teacher anything, or paste your work…"
-        rows="3"
+        :placeholder="t('chat.placeholder')"
+        :style="{ height: composerHeight + 'px' }"
         @keydown.enter.exact.prevent="submit"
       />
       <button
         type="submit"
         :disabled="!draft.trim()"
       >
-        Send
+        {{ t('chat.send') }}
       </button>
     </form>
   </section>
@@ -298,16 +336,43 @@ watch(
   color: var(--ink-soft);
 }
 
+/* Drag bar that sets the composer height; carries the separator line. */
+.composer-resize {
+  flex: 0 0 auto;
+  height: 8px;
+  cursor: row-resize;
+  border-top: 1px solid var(--rule);
+  background: var(--paper-card);
+  position: relative;
+  -webkit-app-region: no-drag;
+}
+.composer-resize::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--rule);
+  transition: background 0.12s;
+}
+.composer-resize:hover::after,
+.composer-resize.active::after {
+  background: var(--accent-soft);
+}
 .chat-input {
   display: flex;
   gap: 0.5rem;
   padding: 0.8rem;
-  border-top: 1px solid var(--rule);
   background: var(--paper-card);
 }
 .chat-input textarea {
   flex: 1;
   resize: none;
+  box-sizing: border-box;
+  min-height: 56px;
   font: inherit;
   font-size: 0.95rem;
   padding: 0.55rem 0.7rem;
